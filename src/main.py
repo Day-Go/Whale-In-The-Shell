@@ -19,6 +19,7 @@ if __name__ == "__main__":
 
     gm = GameMaster(api_key, supabase)
 
-    gm.get_system_prompt()
+    gm.set_system_prompt()
+    gm.generate_announcement("Big Boys", "Big Coin", "neutral")
 
-    print(gm.system_prompt)
+
