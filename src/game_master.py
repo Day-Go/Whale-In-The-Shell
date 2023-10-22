@@ -1,4 +1,3 @@
-import os
 import openai
 import json
 import logging
@@ -27,41 +26,40 @@ class GameMaster:
 
         return prompt
 
-    def set_system_prompt(self):
+    def set_system_prompt(self) -> None:
         prompt_name = 'GameMasterSystemPrompt'
         self.system_prompt = self.get_prompt_by_name_from_supabase(prompt_name)
 
         logging.info(f"System prompt: {self.system_prompt}")
 
-    def generate_announcement(self, entity, product, sentiment):
-        prompt_name = 'GameMasterAnnouncement'
+    def generate_message(self, entity: str, product: str, sentiment: str, message_type: str) -> str:
+        if message_type == "announcement":
+            prompt_name = 'GameMasterAnnouncement'
+        elif message_type == "event":
+            prompt_name = 'GameMasterEvent'
+        else:
+            logging.error(f"Invalid message type: {message_type}")
+            return
+
         prompt = self.get_prompt_by_name_from_supabase(prompt_name)
-        prompt = prompt.format(entity=entity, product=product, sentiment=sentiment)
-        logging.info(f"Formatted prompt: {prompt}")
 
-        message = self.message_history + [{"role": "user", "content": f"{prompt}"}]     
+        # TODO: Proper exception handling
+        if prompt:
+            prompt = prompt.format(entity=entity, product=product, sentiment=sentiment)
+            logging.info(f"Formatted prompt: {prompt}")
 
-        completion = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=message
-        )
+            message = self.message_history + [{"role": "user", "content": f"{prompt}"}]
 
-        reply_content = completion.choices[0].message.content
-        logging.info(f"Reply from OpenAI: {reply_content}")
+            completion = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=message
+            )
 
+            reply_content = completion.choices[0].message['content']  # Adjusted to access 'content' key
+            logging.info(f"Reply from OpenAI: {reply_content}")
+        else:
+            reply_content = None
+            logging.warning(f"Prompt {prompt_name} not found or could not be formatted")
 
-    def generate_event(self, entity, product, sentiment):
-        prompt_name = 'GameMasterEvent'
-        prompt = self.get_prompt_by_name_from_supabase(prompt_name)
-        prompt = prompt.format(entity=entity, product=product, sentiment=sentiment)
-        logging.info(f"Formatted prompt: {prompt}")
+        return reply_content
 
-        message = self.message_history + [{"role": "user", "content": f"{prompt}"}]     
-
-        completion = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=message
-        )
-
-        reply_content = completion.choices[0].message.content
-        logging.info(f"Reply from OpenAI: {reply_content}")
