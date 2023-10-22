@@ -1,30 +1,17 @@
 import openai
-import json
 import logging
 from supabase import Client
 
+from llm import LLM
+
 logging.basicConfig(level=logging.INFO)
 
-class GameMaster:
+class GameMaster(LLM):
     def __init__(self, api_key: str, supabase: Client):
-        openai.api_key = api_key
-        self.supabase = supabase
+        super.__init__(api_key, supabase)
 
         self.set_system_prompt()
         self.message_history = [{"role": "system", "content": f"{self.system_prompt}"}]
-
-    def get_prompt_by_name_from_supabase(self, prompt_name: str) -> str:
-        retrieved_data = self.supabase.table("prompts").select("content").eq('name', prompt_name).execute()
-
-        # TODO: Proper exception handling
-        if retrieved_data.data:
-            prompt = retrieved_data.data[0]['content']
-            logging.info(f"Retrieved prompt with name {prompt_name}: {prompt}")
-        else:
-            prompt = None
-            logging.info(f"Retrieved prompt with name {prompt_name}: {prompt}")
-
-        return prompt
 
     def set_system_prompt(self) -> None:
         prompt_name = 'GameMasterSystemPrompt'
@@ -52,7 +39,8 @@ class GameMaster:
 
             completion = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
-                messages=message
+                messages=message,
+                temperature=1.2
             )
 
             reply_content = completion.choices[0].message['content']  # Adjusted to access 'content' key
