@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.INFO)
 
 class GameMaster(LLM):
     def __init__(self, api_key: str, supabase: Client):
-        super.__init__(api_key, supabase)
+        super().__init__(api_key, supabase)
 
         self.set_system_prompt()
         self.message_history = [{"role": "system", "content": f"{self.system_prompt}"}]
