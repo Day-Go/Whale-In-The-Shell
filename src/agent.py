@@ -29,7 +29,7 @@ class Agent(LLM):
         logging.info(f'System prompt: {self.system_prompt}')
 
     def observe(self):
-        event = self.get_random_recent_event(time_delta_minutes=720)
+        event = self.get_random_recent_event(time_delta_minutes=10000)
         logging.info(f'Event observed: {event}')
 
         prompt_name = 'AgentObserve'
@@ -45,7 +45,8 @@ class Agent(LLM):
             completion = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=message,
-                temperature=1.2
+                temperature=1.2,
+                max_tokens=80
             )
 
             reply_content = completion.choices[0].message['content']  # Adjusted to access 'content' key

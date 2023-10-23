@@ -1,4 +1,5 @@
 import os
+import re
 import openai
 from supabase import create_client, Client
 
@@ -23,26 +24,50 @@ def game_master_test():
     sentiment = 'neutral'
     message_type = 'announcement'
     event_type = f'{sentiment} {message_type}'
-    message = gm.generate_message(entity, product, sentiment, message_type)
+    response = gm.generate_message(entity, product, sentiment, message_type)
 
-    embedding_response = openai.Embedding.create(
-        input=message,
+    response_embedding = openai.Embedding.create(
+        input=response,
         model='text-embedding-ada-002'
     )
 
-    embedding = embedding_response['data'][0]['embedding']
+    embedding = response_embedding['data'][0]['embedding']
 
     data = {
         'event_type': event_type,
-        'event_details': message,
+        'event_details': response,
         'embedding': embedding
     }
     
-    data = supabase.table('events').insert(data).execute()
+    supabase.table('events').insert(data).execute()
 
 def agent_test():
-    agent = Agent(api_key, supabase, 0)
-    agent.observe()
+    agent_id = 4
+    agent = Agent(api_key, supabase, agent_id)
+    response = agent.observe()
+
+    # Responses can be cut off mid sentence due to token limit.
+    # Use a regular expression to match complete sentences
+    matches = re.findall(r'\s*[^.!?]*[.!?]', response)
+    complete_paragraph = ''.join(matches).strip()
+
+    response_embedding = openai.Embedding.create(
+        input=complete_paragraph,
+        model='text-embedding-ada-002'
+    )
+
+    embedding = response_embedding['data'][0]['embedding']
+
+    data = {
+        'agent_id': agent_id,
+        'memory_details': complete_paragraph,
+        'embedding': embedding
+    }
+
+    supabase.table('memories').insert(data).execute()
+
+
+
 
 if __name__ == '__main__':
     # game_master_test()
