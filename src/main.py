@@ -1,6 +1,9 @@
 import os
 import re
+import ast
+import vecs
 import openai
+import numpy as np
 from supabase import create_client, Client
 
 from agent import Agent
@@ -42,35 +45,27 @@ def game_master_test():
     supabase.table('events').insert(data).execute()
 
 def agent_test():
-    agent_id = 4
+    agent_id = 2
     agent = Agent(api_key, supabase, agent_id)
     response = agent.observe()
 
-    # Responses can be cut off mid sentence due to token limit.
-    # Use a regular expression to match complete sentences
-    matches = re.findall(r'\s*[^.!?]*[.!?]', response)
-    complete_paragraph = ''.join(matches).strip()
-
-    response_embedding = openai.Embedding.create(
-        input=complete_paragraph,
-        model='text-embedding-ada-002'
-    )
-
-    embedding = response_embedding['data'][0]['embedding']
-
-    data = {
-        'agent_id': agent_id,
-        'memory_details': complete_paragraph,
-        'embedding': embedding
-    }
-
-    supabase.table('memories').insert(data).execute()
 
 
+def embedding_similarity_test(query_embedding):
+    response = supabase.table('memories').select('id, embedding').execute()
+    # print(response.data[1])
+
+    for row in response.data[:-1]:
+        memory_id = row['id']
+        embedding = ast.literal_eval(row['embedding'])
+        similarity = np.dot(np.array(query_embedding), np.array(embedding))
+
+        print(similarity)
 
 
 if __name__ == '__main__':
     # game_master_test()
     agent_test()
+    # embedding_similarity_test([None])
 
 

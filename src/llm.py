@@ -22,15 +22,15 @@ class LLM:
 
         return prompt
     
-    def get_random_recent_event(self, time_delta_minutes: int) -> str:
+    def get_random_recent_event(self, time_delta_minutes: int):
         now = datetime.now()
         one_hour_ago = now - timedelta(minutes=time_delta_minutes)
 
         response = self.supabase.table('events')\
-            .select('event_details')\
+            .select('id, event_details')\
             .gte('created_at', one_hour_ago)\
             .order('created_at')\
             .execute()
 
-        random_event = random.choice(response.data)['event_details'] if response.data else None
+        random_event = random.choice(response.data) if response.data else None
         return random_event

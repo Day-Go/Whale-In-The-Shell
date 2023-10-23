@@ -1,3 +1,4 @@
+import re
 import openai
 import logging
 from supabase import Client
@@ -30,6 +31,8 @@ class Agent(LLM):
 
     def observe(self):
         event = self.get_random_recent_event(time_delta_minutes=10000)
+        event_id = event['id']
+        event_details = event['event_details']
         logging.info(f'Event observed: {event}')
 
         prompt_name = 'AgentObserve'
@@ -37,7 +40,7 @@ class Agent(LLM):
 
         # TODO: Proper exception handling
         if prompt:
-            prompt = prompt.format(name=self.agent_name, event=event)
+            prompt = prompt.format(name=self.agent_name, event=event_details)
             logging.info(f"Formatted prompt: {prompt}")
 
             message = self.message_history + [{"role": "user", "content": f"{prompt}"}]
@@ -55,6 +58,8 @@ class Agent(LLM):
             reply_content = None
             logging.warning(f"Prompt {prompt_name} not found or could not be formatted")
 
+        self.insert_memory(reply_content, event_id)
+
         return reply_content
 
     def reflect(self):
@@ -62,3 +67,30 @@ class Agent(LLM):
 
     def plan(self):
         pass
+
+    def insert_memory(self, response: str, event_id: int):
+        # Responses can be cut off mid sentence due to token limit.
+        # Use a regular expression to match complete sentences
+        matches = re.findall(r'\s*[^.!?]*[.!?]', response)
+        complete_paragraph = ''.join(matches).strip()
+
+        response_embedding = openai.Embedding.create(
+            input=complete_paragraph,
+            model='text-embedding-ada-002'
+        )
+
+        embedding = response_embedding['data'][0]['embedding']
+
+        data = {
+            'agent_id': self.id,
+            'memory_details': complete_paragraph,
+            'embedding': embedding
+        }
+        db_response = self.supabase.table('memories').insert(data).execute()
+
+
+        join_data = {
+            'memory_id': db_response.data[0]['id'],
+            'event_id': event_id   
+        }
+        self.supabase.table('memoryeventassociations').insert(join_data).execute()
