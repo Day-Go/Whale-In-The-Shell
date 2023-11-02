@@ -3,32 +3,36 @@ import logging
 from supabase import Client
 
 from llm import LLM
+from data_access_object import DataAccessObject
+from models.enums import Event
 
 logging.basicConfig(level=logging.INFO)
 
 class GameMaster(LLM):
-    def __init__(self, api_key: str, supabase: Client):
-        super().__init__(api_key, supabase)
+    def __init__(self, api_key: str, dao: DataAccessObject):
+        super().__init__(api_key)
+        self.dao = dao
 
         self.set_system_prompt()
         self.message_history = [{"role": "system", "content": f"{self.system_prompt}"}]
 
     def set_system_prompt(self) -> None:
         prompt_name = 'GameMasterSystemPrompt'
-        self.system_prompt = self.get_prompt_by_name_from_supabase(prompt_name)
+        self.system_prompt = self.dao.get_prompt_by_name(prompt_name)
 
         logging.info(f"System prompt: {self.system_prompt}")
 
-    def generate_message(self, entity: str, product: str, sentiment: str, message_type: str) -> str:
-        if message_type == "announcement":
+    def generate_message(self, entity: str, product: str, sentiment: str, event: Event) -> str:
+        # TODO: Make an event_type enum
+        if event == Event.ANNOUNCEMENT:
             prompt_name = 'GameMasterAnnouncement'
-        elif message_type == "event":
-            prompt_name = 'GameMasterEvent'
+        elif event == Event.DEVELOPMENT:
+            prompt_name = 'GameMasterDevelopment'
         else:
-            logging.error(f"Invalid message type: {message_type}")
+            logging.error(f"Invalid message type: {event}")
             return
 
-        prompt = self.get_prompt_by_name_from_supabase(prompt_name)
+        prompt = self.dao.get_prompt_by_name(prompt_name)
 
         # TODO: Proper exception handling
         if prompt:
@@ -37,13 +41,7 @@ class GameMaster(LLM):
 
             message = self.message_history + [{"role": "user", "content": f"{prompt}"}]
 
-            completion = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=message,
-                temperature=1.2
-            )
-
-            reply_content = completion.choices[0].message['content']  # Adjusted to access 'content' key
+            reply_content = self.chat(message)
             logging.info(f"Reply from OpenAI: {reply_content}")
         else:
             reply_content = None

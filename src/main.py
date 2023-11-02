@@ -16,7 +16,6 @@ supabase: Client = create_client(url, key)
 api_key = os.getenv('OPENAI_API')
 openai.api_key = api_key
 
-
 def game_master_test():
     gm = GameMaster(api_key, supabase)
 
@@ -42,14 +41,14 @@ def game_master_test():
         'embedding': embedding
     }
     
+    print(response)
     supabase.table('events').insert(data).execute()
+    # supabase.table('events')
 
 def agent_test():
     agent_id = 2
     agent = Agent(api_key, supabase, agent_id)
     response = agent.observe()
-
-
 
 def embedding_similarity_test(query_embedding):
     response = supabase.table('memories').select('id, embedding').execute()
@@ -64,8 +63,8 @@ def embedding_similarity_test(query_embedding):
 
 
 if __name__ == '__main__':
-    # game_master_test()
-    agent_test()
+    game_master_test()
+    # agent_test()
     # embedding_similarity_test([None])
 
 
