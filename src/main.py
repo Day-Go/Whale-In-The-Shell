@@ -8,11 +8,15 @@ from supabase import create_client, Client
 
 from agent import Agent
 from game_master import GameMaster
+from data_access_object import DataAccessObject
+from models.enums import Event 
 
 url: str = os.getenv('SUPABASE_URL')
 key: str = os.getenv('SUPABASE_KEY')
+
 supabase: Client = create_client(url, key)
 
+dao = DataAccessObject(supabase)
 api_key = os.getenv('OPENAI_API')
 openai.api_key = api_key
 
@@ -24,9 +28,8 @@ def game_master_test():
     entity = 'Fal Hinney'
     product = 'Link Swap'
     sentiment = 'neutral'
-    message_type = 'announcement'
-    event_type = f'{sentiment} {message_type}'
-    response = gm.generate_message(entity, product, sentiment, message_type)
+    event_type = Event.ANNOUNCEMENT
+    response = gm.generate_message(entity, product, sentiment, event_type)
 
     response_embedding = openai.Embedding.create(
         input=response,
@@ -61,9 +64,13 @@ def embedding_similarity_test(query_embedding):
 
         print(similarity)
 
+def new_entity_test():
+    gm = GameMaster(api_key, dao)
+    gm.create_new_entity()
 
 if __name__ == '__main__':
-    game_master_test()
+    new_entity_test()
+    # game_master_test()
     # agent_test()
     # embedding_similarity_test([None])
 

@@ -20,6 +20,9 @@ class DataAccessObject:
         response = self.sb_client.table('agents').select('name, biography').eq('id', agent_id).execute()
         return response.data
 
+    def get_random_entity_type(self):
+        pass
+    
     def get_prompt_by_name(self, prompt_name: str) -> str:
         try:
             response = self.sb_client.table('prompts').select('content').eq('name', prompt_name).execute()
