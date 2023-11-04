@@ -16,20 +16,46 @@ class DataAccessObject:
     def insert_memory_event_assosciation(self, data):
         return self.sb_client.table('memoryeventassociations').insert(data).execute()
 
+    def insert_entity(self, name: str, type: str, description: str, mission: str):
+        data = {
+            'name': name,
+            'type': type,
+            'description': description,
+            'mission': mission
+        }
+
+        return self.sb_client.table('entities').insert(data).execute()
+
+
     def get_agent_by_id(self, agent_id):
-        response = self.sb_client.table('agents').select('name, biography').eq('id', agent_id).execute()
+        response = self.sb_client.table('agents') \
+                                 .select('name, biography') \
+                                 .eq('id', agent_id) \
+                                 .execute()
         return response.data
 
-    def get_random_entity_type(self):
-        pass
+    def get_entity_type_by_id(self, id: int) -> str:
+        response = self.sb_client.table('entity_types') \
+                                 .select('name') \
+                                 .eq('id', id) \
+                                 .execute()
+        return response.data[0]['name']
     
+    def get_random_entity_type(self) -> str:
+        response = self.sb_client.table("entity_types") \
+                                 .select("id, name", count="exact") \
+                                 .execute()
+        
+        idx = random.randint(1,response.count)
+        return response.data[idx]['name']
+
+
     def get_prompt_by_name(self, prompt_name: str) -> str:
         try:
             response = self.sb_client.table('prompts').select('content').eq('name', prompt_name).execute()
 
             if response.data:
                 prompt = response.data[0]['content']
-                logging.info(f'Retrieved prompt with name {prompt_name}: {prompt}')
                 return prompt
             else:
                 logging.warning(f'Prompt with name {prompt_name} not found.')

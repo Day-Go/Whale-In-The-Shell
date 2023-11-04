@@ -22,8 +22,6 @@ class GameMaster(LLM):
         prompt_name = 'GM_SystemPrompt'
         self.system_prompt = self.dao.get_prompt_by_name(prompt_name)
 
-        logging.info(f"System prompt: {self.system_prompt}")
-
     def timestep(self):
         """
         Executes a single timestep in the game, where an event is randomly chosen and
@@ -53,16 +51,52 @@ class GameMaster(LLM):
         pass
 
     def create_new_entity(self):
-        entity_type = 
-        self.generate_entity_name()
+        crypto_company_id = 2
+        entity_type = self.dao.get_entity_type_by_id(crypto_company_id)
 
-    def generate_entity_name(self):
+        entity_name = self.generate_entity_name(entity_type)
+        entity_mission = self.generate_entity_mission_statement(entity_type, entity_name)
+        entity_desc = self.generate_entity_description(entity_type, entity_name, entity_mission)
+
+        self.dao.insert_entity(name=entity_name, 
+                               type=entity_type, 
+                               description=entity_desc, 
+                               mission=entity_mission)
+
+    def generate_entity_name(self, entity_type: str) -> str:
         prompt = self.dao.get_prompt_by_name('GM_GenEntityName')
-        prompt.format(entity_type=)
+        prompt = prompt.format(entity_type=entity_type)
         message = [{"role": "user", "content": f"{prompt}"}]
+        logging.info(f"Prompt: {prompt}")
 
         entity_name = self.chat(message, 1.2, 8)
         logging.info(f"Entity name: {entity_name}")
+
+        return entity_name
+
+    def generate_entity_mission_statement(self, entity_type: str, entity_name: str) -> str:
+        prompt = self.dao.get_prompt_by_name('GM_GenEntityMission')
+        prompt = prompt.format(entity_type=entity_type, 
+                               entity_name=entity_name)
+        message = [{"role": "user", "content": f"{prompt}"}]
+        logging.info(f"Prompt: {prompt}")
+
+        entity_mission = self.chat(message, 1.2, 80)
+        logging.info(f"Entity mission statement: {entity_mission}")
+
+        return entity_mission
+
+    def generate_entity_description(self, entity_type: str, entity_name:str, entity_mission: str) -> str:
+        prompt = self.dao.get_prompt_by_name('GM_GenEntityDesc')
+        prompt = prompt.format(entity_type=entity_type, entity_name=entity_name,entity_mission=entity_mission)
+        message = [{"role": "user", "content": f"{prompt}"}]
+        logging.info(f"Prompt: {prompt}")
+
+        entity_desc = self.chat(message, 1.2, 80)
+        logging.info(f"Entity description: {entity_desc}")
+
+        return entity_desc
+
 
     def generate_message(self, entity: str, product: str, sentiment: str, event_type: Event) -> None:
         prompt = self.get_prompt(event_type)

@@ -28,4 +28,8 @@ class LLM:
         )
 
         reply_content = completion.choices[0].message['content'] 
+
+        if '.' in reply_content:
+            reply_content = self.truncate_unfinished_sentence(reply_content)
+            
         return reply_content
