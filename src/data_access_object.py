@@ -10,6 +10,9 @@ class DataAccessObject:
     def insert_event(self, data):
         return self.sb_client.table('memories').insert(data).execute()
     
+    def insert_event_entity(self, data):
+        return self.sb_client.table('evententities').insert(data).execute()
+
     def insert_memory(self, data):
         return self.sb_client.table('events').insert(data).execute()
     
@@ -25,7 +28,6 @@ class DataAccessObject:
         }
 
         return self.sb_client.table('entities').insert(data).execute()
-
 
     def get_agent_by_id(self, agent_id):
         response = self.sb_client.table('agents') \
@@ -49,12 +51,26 @@ class DataAccessObject:
         idx = random.randint(1,response.count)
         return response.data[idx]['name']
 
-
+    def get_crypto_product_by_id(self, id: int) -> str:
+        response = self.sb_client.table('crypto_products') \
+                                 .select('name') \
+                                 .eq('id', id) \
+                                 .execute()
+        return response.data[0]['name']
+    
+    def get_random_crypto_product(self) -> str:
+        response = self.sb_client.table("crypto_products") \
+                                 .select("id, name", count="exact") \
+                                 .execute()
+        
+        idx = random.randint(1,response.count)
+        return response.data[idx]['name']
+    
     def get_prompt_by_name(self, prompt_name: str) -> str:
         try:
             response = self.sb_client.table('prompts').select('content').eq('name', prompt_name).execute()
 
-            if response.data:
+            if response.data: 
                 prompt = response.data[0]['content']
                 return prompt
             else:
@@ -64,7 +80,6 @@ class DataAccessObject:
             logging.error(f"An error occurred while retrieving the prompt: {e}")
             return None
         
-
     def get_random_recent_event(self, time_delta_minutes: int):
         now = datetime.now()
         one_hour_ago = now - timedelta(minutes=time_delta_minutes)

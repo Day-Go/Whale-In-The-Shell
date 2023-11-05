@@ -66,7 +66,7 @@ def embedding_similarity_test(query_embedding):
 
 def new_entity_test():
     gm = GameMaster(api_key, dao)
-    gm.create_new_entity()
+    gm.timestep()
 
 if __name__ == '__main__':
     new_entity_test()

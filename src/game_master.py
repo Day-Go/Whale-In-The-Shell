@@ -15,13 +15,6 @@ class GameMaster(LLM):
         self.dao = dao
         self.step_count = 0
 
-        self.get_system_prompt()
-        self.message_history = [{"role": "system", "content": f"{self.system_prompt}"}]
-
-    def get_system_prompt(self) -> None:
-        prompt_name = 'GM_SystemPrompt'
-        self.system_prompt = self.dao.get_prompt_by_name(prompt_name)
-
     def timestep(self):
         """
         Executes a single timestep in the game, where an event is randomly chosen and
@@ -42,10 +35,35 @@ class GameMaster(LLM):
         self.step_count += 1
 
     def generate_announcement(self):
-        prompt_name = 'prompt_name'
-        prompt = self.dao.get_prompt_by_name(prompt_name) 
+        new_entity = self.create_new_entity()
+        logging.info(f"Created new entity with id {new_entity['id']}")
 
-        
+        new_product = self.create_new_product(entity_type=new_entity['type'], entity_name=new_entity['name'])
+        logging.info(f"Created new product with id {new_product['id']}")
+
+        system_prompt =  self.dao.get_prompt_by_name('GM_SystemPrompt')
+        prompt = self.dao.get_prompt_by_name('GM_Announcement')
+
+        prompt.format(event='launch announcement', product=new_product['name'], entity=new_entity['name'])
+        message = [{"role": "system", "content": system_prompt}, {"role": "user", "content": prompt}]
+        event = self.chat(message, temp=1.2, max_tokens=80)
+
+        event_table_data = {
+            'event_type': Event.ANNOUNCEMENT,
+            'event_details': event,
+            'embedding': self.generate_embedding(event)
+        }
+
+        event_row = self.dao.insert_event(event_table_data)
+
+        event_entities_table_data = {
+            'event_id': event_row['id'],
+            'entity_id': new_entity['id']
+        }
+
+        event_entities_row = self.dao.insert_event_entity(event_entities_table_data)
+
+
     def generate_development():
         pass
 
@@ -63,12 +81,14 @@ class GameMaster(LLM):
                 entity_name=entity_name, entity_mission=entity_mission
             )
 
-            self.dao.insert_entity(
+            response = self.dao.insert_entity(
                 name=entity_name,
                 type=entity_type,
                 description=entity_desc,
                 mission=entity_mission
             )
+
+            return response.data[0]
         except Exception as e:
             # Properly handle exceptions and log the error
             logging.error(f"Failed to create new entity: {e}")
@@ -79,7 +99,7 @@ class GameMaster(LLM):
         message = [{"role": "user", "content": prompt}]
         logging.info(f"Prompt: {prompt}")
 
-        entity_attribute = self.chat(message, 1.2, 80)
+        entity_attribute = self.chat(message, 1.25, 80)
         logging.info(f"Generated attribute: {entity_attribute}")
 
         if not entity_attribute:
@@ -87,22 +107,36 @@ class GameMaster(LLM):
 
         return entity_attribute
 
+    def create_new_product(self, **kwargs) -> str:
+        product_type = self.dao.get_crypto_product_by_id(1)
+        product_name = self.generate_product_name(
+            entity_type=kwargs.get('entity_type'), 
+            entity_name=kwargs.get('entity_name'), 
+            product_type=product_type
+        )
 
-    def generate_message(self, entity: str, product: str, sentiment: str, event_type: Event) -> None:
-        prompt = self.get_prompt(event_type)
-        prompt = prompt.format(entity=entity, product=product, sentiment=sentiment)
-        logging.info(f"Formatted prompt: {prompt}")
+        return product_name
 
-        message = self.message_history + [{"role": "user", "content": f"{prompt}"}]
+    def generate_product_name(self, **kwargs) -> str:
+        entity_type = kwargs.get('entity_type')
+        entity_name = kwargs.get('entity_name')
+        product_type = kwargs.get('product_type')
 
-        response = self.chat(message)
-        embedding = self.generate_embedding(response)
+        prompt = self.dao.get_prompt_by_name('GM_GenProductName').format(
+            entity_type=entity_type, entity_name=entity_name, product_type=product_type
+        )
 
-        data = {
-            'event_type': event_type,
-            'event_details': response,
-            'embedding': embedding
-        }
+        message = [{"role": "user", "content": prompt}]
+        logging.info(f"Prompt: {prompt}")
+
+        product_name = self.chat(message, 1.25, 80)
+        logging.info(f"Generated product name: {product_name}")
+
+        if not product_name:
+            raise ValueError(f"Failed to generate product name with prompt: {prompt}")
+
+        return product_name
+        
 
     def get_prompt(self, event: Event) -> str:
         prompt_names = {
