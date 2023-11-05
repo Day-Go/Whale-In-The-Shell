@@ -74,8 +74,13 @@ class GameMaster(LLM):
             'event_id': event_row.data[0]['id'],
             'entity_id': new_entity['id']
         }
-
         event_entities_row = self.dao.insert_event_entity(event_entities_table_data)
+
+        event_products_table_data = {
+            'event_id': event_row.data[0]['id'],
+            'product_id': new_product['id']
+        }
+        event_products_row = self.dao.insert_event_product(event_products_table_data)
 
 
     def generate_development():
@@ -122,7 +127,7 @@ class GameMaster(LLM):
         return entity_attribute
 
     def create_new_product(self, **kwargs) -> str:
-        product_type = self.dao.get_crypto_product_by_id(1)
+        product_type = self.dao.get_random_crypto_product()
         product_name = self.generate_product_name(
             entity_type=kwargs.get('entity_type'), 
             entity_name=kwargs.get('entity_name'), 

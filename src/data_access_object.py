@@ -21,6 +21,9 @@ class DataAccessObject:
 
         return self.sb_client.table('products').insert(data).execute()
 
+    def insert_event_product(self, data):
+        return self.sb_client.table('eventsproducts').insert(data).execute()
+
     def insert_memory(self, data):
         return self.sb_client.table('events').insert(data).execute()
     
