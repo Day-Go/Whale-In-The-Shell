@@ -9,30 +9,38 @@ from models.enums import Event
 
 logging.basicConfig(level=logging.INFO)
 
+ANNOUNCEMENT_PROBABILITY_START = 100
+ANNOUNCEMENT_PROBABILITY_END = 5
+MAX_STEP_COUNT = 1000
+
 class GameMaster(LLM):
     def __init__(self, api_key: str, dao: DataAccessObject):
         super().__init__(api_key)
         self.dao = dao
         self.step_count = 0
 
-    def timestep(self):
-        """
-        Executes a single timestep in the game, where an event is randomly chosen and
-        processed. The type of event is dependent on the step_count of the game, with
-        announcements becoming less likely and developments more likely as time progresses.
-        """
-        # Calculate the probability of the event being an announcement, which decreases
-        # as the step_count increases, from 100% at step_count=0 to 5% at step_count=1000.
-        # NOTE: This implementation only works for 2 event types and will need to be changed.
-        announcement_probability = max(5, 100 - (95 * self.step_count / 1000))
-        event_type = Event.ANNOUNCEMENT if random.random() * 100 < announcement_probability else Event.DEVELOPMENT
+    def get_event_type(self) -> Event:
+        probability = self.calculate_announcement_probability(self.step_count)
+        return Event.ANNOUNCEMENT if random.random() * 100 < probability else Event.DEVELOPMENT
 
+    @staticmethod
+    def calculate_announcement_probability(step_count: int) -> float:
+        # Refactored calculation into a static method
+        return max(
+            ANNOUNCEMENT_PROBABILITY_END,
+            ANNOUNCEMENT_PROBABILITY_START - ((ANNOUNCEMENT_PROBABILITY_START - ANNOUNCEMENT_PROBABILITY_END) * step_count / MAX_STEP_COUNT)
+        )
+    
+    def timestep(self) -> None:
+        event_type = self.get_event_type(self.step_count)
+        self.process_event(event_type)
+        self.step_count += 1
+
+    def process_event(self, event_type: Event) -> None:
         if event_type == Event.ANNOUNCEMENT:
             self.generate_announcement()
         else:
             self.generate_development()
-
-        self.step_count += 1
 
     def generate_announcement(self):
         new_entity = self.create_new_entity()
@@ -137,7 +145,7 @@ class GameMaster(LLM):
         response = self.dao.insert(
             'products',
             entity_id=kwargs.get('entity_id'), 
-            product_name=product_name
+            name=product_name
         )
 
         return response.data[0]
