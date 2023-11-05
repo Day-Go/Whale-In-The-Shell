@@ -1,5 +1,6 @@
 import random
 import logging
+from typing import Any
 from datetime import datetime, timedelta
 from supabase import Client
 
@@ -7,38 +8,13 @@ class DataAccessObject:
     def __init__(self, client: Client):
         self.sb_client = client
 
-    def insert_event(self, data):
-        return self.sb_client.table('events').insert(data).execute()
-    
-    def insert_event_entity(self, data):
-        return self.sb_client.table('eventsentities').insert(data).execute()
-
-    def insert_product(self, entity_id: int, product_name: str):
-        data = {
-            'entity_id': entity_id, 
-            'name': product_name
-        }
-
-        return self.sb_client.table('products').insert(data).execute()
-
-    def insert_event_product(self, data):
-        return self.sb_client.table('eventsproducts').insert(data).execute()
-
-    def insert_memory(self, data):
-        return self.sb_client.table('events').insert(data).execute()
-    
-    def insert_memory_event_assosciation(self, data):
-        return self.sb_client.table('memoryeventassociations').insert(data).execute()
-
-    def insert_entity(self, name: str, type: str, description: str, mission: str):
-        data = {
-            'name': name,
-            'type': type,
-            'description': description,
-            'mission': mission
-        }
-
-        return self.sb_client.table('entities').insert(data).execute()
+    def insert(self, table_name: str, **kwargs) -> Any:
+        try:
+            data = kwargs
+            return self.sb_client.table(table_name).insert(data).execute()
+        except Exception as e:
+            logging.error(f"An error occurred during insert operation on {table_name}: {e}")
+            return None
 
     def get_agent_by_id(self, agent_id):
         response = self.sb_client.table('agents') \

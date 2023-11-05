@@ -47,7 +47,6 @@ class GameMaster(LLM):
 
         system_prompt =  self.dao.get_prompt_by_name('GM_SystemPrompt')
         prompt = self.dao.get_prompt_by_name('GM_Announcement')
-
         prompt = prompt.format(
             event='launch announcement', 
             product=new_product['name'], 
@@ -61,27 +60,27 @@ class GameMaster(LLM):
         ]
 
         event = self.chat(message, temp=1.2, max_tokens=80)
+        event_embedding = self.generate_embedding(event)
         logging.info(f"Generated announcement: {event}")
 
-        event_table_data = {
-            'event_type': Event.ANNOUNCEMENT.value,
-            'event_details': event,
-            'embedding': self.generate_embedding(event)
-        }
+        event_row = self.dao.insert(
+            'events',
+            event_type=Event.ANNOUNCEMENT.value, 
+            event_details=event, 
+            embedding=event_embedding
+        )
 
-        event_row = self.dao.insert_event(event_table_data)
-        event_entities_table_data = {
-            'event_id': event_row.data[0]['id'],
-            'entity_id': new_entity['id']
-        }
-        event_entities_row = self.dao.insert_event_entity(event_entities_table_data)
+        event_entities_row = self.dao.insert(
+            'eventsentities',
+            event_id=event_row.data[0]['id'],
+            entity_id=new_entity['id']
+        )
 
-        event_products_table_data = {
-            'event_id': event_row.data[0]['id'],
-            'product_id': new_product['id']
-        }
-        event_products_row = self.dao.insert_event_product(event_products_table_data)
-
+        event_products_row = self.dao.insert(
+            'eventsproducts',
+            event_id=event_row.data[0]['id'],
+            product_id=new_product['id']
+        )
 
     def generate_development():
         pass
@@ -100,7 +99,8 @@ class GameMaster(LLM):
                 entity_name=entity_name, entity_mission=entity_mission
             )
 
-            response = self.dao.insert_entity(
+            response = self.dao.insert(
+                'entities',
                 name=entity_name,
                 type=entity_type,
                 description=entity_desc,
@@ -134,7 +134,8 @@ class GameMaster(LLM):
             product_type=product_type
         )
 
-        response = self.dao.insert_product(
+        response = self.dao.insert(
+            'products',
             entity_id=kwargs.get('entity_id'), 
             product_name=product_name
         )
@@ -161,16 +162,3 @@ class GameMaster(LLM):
 
         return product_name
         
-    def get_prompt(self, event: Event) -> str:
-        prompt_names = {
-            Event.ANNOUNCEMENT: 'GM_Announcement',
-            Event.DEVELOPMENT: 'GameMasterDevelopment',
-        }
-        
-        prompt_name = prompt_names.get(event)
-        if prompt_name is None:
-            logging.error(f"Invalid message type: {event}")
-            return None 
-        
-        return self.dao.get_prompt_by_name(prompt_name) 
-
