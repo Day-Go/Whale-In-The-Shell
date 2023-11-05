@@ -8,10 +8,18 @@ class DataAccessObject:
         self.sb_client = client
 
     def insert_event(self, data):
-        return self.sb_client.table('memories').insert(data).execute()
+        return self.sb_client.table('events').insert(data).execute()
     
     def insert_event_entity(self, data):
-        return self.sb_client.table('evententities').insert(data).execute()
+        return self.sb_client.table('eventsentities').insert(data).execute()
+
+    def insert_product(self, entity_id: int, product_name: str):
+        data = {
+            'entity_id': entity_id, 
+            'name': product_name
+        }
+
+        return self.sb_client.table('products').insert(data).execute()
 
     def insert_memory(self, data):
         return self.sb_client.table('events').insert(data).execute()

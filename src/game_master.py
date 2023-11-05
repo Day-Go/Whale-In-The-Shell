@@ -38,26 +38,40 @@ class GameMaster(LLM):
         new_entity = self.create_new_entity()
         logging.info(f"Created new entity with id {new_entity['id']}")
 
-        new_product = self.create_new_product(entity_type=new_entity['type'], entity_name=new_entity['name'])
+        new_product = self.create_new_product(
+            entity_id=new_entity['id'], 
+            entity_type=new_entity['type'], 
+            entity_name=new_entity['name']
+        )
         logging.info(f"Created new product with id {new_product['id']}")
 
         system_prompt =  self.dao.get_prompt_by_name('GM_SystemPrompt')
         prompt = self.dao.get_prompt_by_name('GM_Announcement')
 
-        prompt.format(event='launch announcement', product=new_product['name'], entity=new_entity['name'])
-        message = [{"role": "system", "content": system_prompt}, {"role": "user", "content": prompt}]
+        prompt = prompt.format(
+            event='launch announcement', 
+            product=new_product['name'], 
+            entity=new_entity['name']
+        )
+        logging.info(f"Prompt: {prompt}")
+
+        message = [
+            {"role": "system", "content": system_prompt}, 
+            {"role": "user", "content": prompt}
+        ]
+
         event = self.chat(message, temp=1.2, max_tokens=80)
+        logging.info(f"Generated announcement: {event}")
 
         event_table_data = {
-            'event_type': Event.ANNOUNCEMENT,
+            'event_type': Event.ANNOUNCEMENT.value,
             'event_details': event,
             'embedding': self.generate_embedding(event)
         }
 
         event_row = self.dao.insert_event(event_table_data)
-
         event_entities_table_data = {
-            'event_id': event_row['id'],
+            'event_id': event_row.data[0]['id'],
             'entity_id': new_entity['id']
         }
 
@@ -115,7 +129,12 @@ class GameMaster(LLM):
             product_type=product_type
         )
 
-        return product_name
+        response = self.dao.insert_product(
+            entity_id=kwargs.get('entity_id'), 
+            product_name=product_name
+        )
+
+        return response.data[0]
 
     def generate_product_name(self, **kwargs) -> str:
         entity_type = kwargs.get('entity_type')
@@ -137,7 +156,6 @@ class GameMaster(LLM):
 
         return product_name
         
-
     def get_prompt(self, event: Event) -> str:
         prompt_names = {
             Event.ANNOUNCEMENT: 'GM_Announcement',
