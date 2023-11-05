@@ -12,7 +12,7 @@ from data_access_object import DataAccessObject
 from models.enums import Event 
 
 url: str = os.getenv('SUPABASE_URL')
-key: str = os.getenv('SUPABASE_KEY')
+key: str = os.getenv('SUPABASE_SERVICE_KEY')
 
 supabase: Client = create_client(url, key)
 

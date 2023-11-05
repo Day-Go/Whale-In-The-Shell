@@ -79,3 +79,29 @@ class DataAccessObject:
 
         random_event = random.choice(response.data) if response.data else None
         return random_event
+    
+    def get_entity_by_event_id(self, event_id: int) -> str:
+        entity_id = self.sb_client.table('eventsentities')\
+            .select('entity_id')\
+            .eq('event_id', event_id)\
+            .execute()
+        
+        response = self.sb_client.table('entities')\
+            .select('id, name')\
+            .eq('id', entity_id.data[0]['entity_id'])\
+            .execute()
+
+        return response.data[0] if response.data else None
+    
+    def get_product_by_event_id(self, event_id: int) -> str:
+        product_id = self.sb_client.table('eventsproducts')\
+            .select('product_id')\
+            .eq('event_id', event_id)\
+            .execute()
+        
+        response = self.sb_client.table('products')\
+            .select('id, name')\
+            .eq('id', product_id.data[0]['product_id'])\
+            .execute()
+
+        return response.data[0] if response.data else None
