@@ -67,9 +67,9 @@ class DataAccessObject:
             logging.error(f"An error occurred while retrieving the prompt: {e}")
             return None
         
-    def get_random_recent_event(self, time_delta_minutes: int):
+    def get_random_recent_event(self, time_delta_hours: int):
         now = datetime.now()
-        one_hour_ago = now - timedelta(minutes=time_delta_minutes)
+        one_hour_ago = now - timedelta(hours=time_delta_hours)
 
         response = self.sb_client.table('events')\
             .select('id, event_details')\
@@ -80,12 +80,27 @@ class DataAccessObject:
         random_event = random.choice(response.data) if response.data else None
         return random_event
     
+    def get_random_recent_event_by_type(self, event_type: str, time_delta_hours: int):
+        now = datetime.now()
+        one_hour_ago = now - timedelta(hours=time_delta_hours)
+
+        response = self.sb_client.table('events')\
+            .select('id, event_details')\
+            .eq('event_type', event_type)\
+            .gte('created_at', one_hour_ago)\
+            .order('created_at')\
+            .execute()
+
+        random_event = random.choice(response.data) if response.data else None
+        return random_event
+
     def get_entity_by_event_id(self, event_id: int) -> str:
         entity_id = self.sb_client.table('eventsentities')\
             .select('entity_id')\
             .eq('event_id', event_id)\
             .execute()
-        
+        logging.info(f"Retrieved entity id: {entity_id}")
+
         response = self.sb_client.table('entities')\
             .select('id, name')\
             .eq('id', entity_id.data[0]['entity_id'])\

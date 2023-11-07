@@ -24,7 +24,7 @@ class GameMaster(LLM):
         return Event.ANNOUNCEMENT if random.random() * 100 < probability else Event.DEVELOPMENT
 
     def get_event_sentiment(self) -> SENTIMENT:
-        return SENTIMENT.NEUTRAL
+        return SENTIMENT.NEGATIVE
 
     @staticmethod
     def calculate_announcement_probability(step_count: int) -> float:
@@ -42,7 +42,8 @@ class GameMaster(LLM):
     def process_event(self, event_type: Event) -> None:
         if event_type == Event.ANNOUNCEMENT:
             # self.generate_announcement()
-            self.generate_development()
+            # self.generate_development()
+            self.generate_update()
         else:
             self.generate_development()
 
@@ -63,7 +64,7 @@ class GameMaster(LLM):
 
     def generate_development(self):
         # 1. Get random event from database
-        event = self.dao.get_random_recent_event(1000)
+        event = self.dao.get_random_recent_event(12)
         logging.info(f"Retrieved event: {event}")
 
         # 2. Get linked entity and product (probably not needed)
@@ -81,7 +82,21 @@ class GameMaster(LLM):
             sentiment.name
         )
 
-        self.prompt_and_save(message, Event.ANNOUNCEMENT, entity, product)
+        self.prompt_and_save(message, Event.DEVELOPMENT, entity, product)
+
+    def generate_update(self):
+        event = self.dao.get_random_recent_event_by_type(Event.ANNOUNCEMENT.value, 12)
+
+        entity = self.dao.get_entity_by_event_id(event['id'])
+        product = self.dao.get_product_by_event_id(event['id'])
+
+        message = self.build_update_message(
+            event, 
+            entity, 
+            product,
+        )
+        
+        self.prompt_and_save(message, Event.UPDATE, entity, product)
 
     def build_announcement_message(self, new_entity: dict, new_product: dict):
         system_prompt =  self.dao.get_prompt_by_name('GM_SystemPrompt')
@@ -111,8 +126,22 @@ class GameMaster(LLM):
         return [{"role": "system", "content": system_prompt}, 
                 {"role": "user", "content": prompt}]
 
+    def build_update_message(self, prev_event: dict, entity: dict, product: dict):
+        system_prompt =  self.dao.get_prompt_by_name('GM_SystemPrompt')
+        prompt = self.dao.get_prompt_by_name('GM_Update')
+        prompt = prompt.format(
+            event=prev_event['event_details'], 
+            entity=entity['name'],
+            product=product['name'], 
+        )
+
+        logging.info(f"Prompt: {prompt}")
+
+        return [{"role": "system", "content": system_prompt}, 
+                {"role": "user", "content": prompt}]
+
     def prompt_and_save(self, message: str, event_type: Event, entity: dict, product: dict):
-        event = self.chat(message, temp=1.2, max_tokens=80)
+        event = self.chat(message, temp=1.25, max_tokens=80)
         event_embedding = self.generate_embedding(event)
         logging.info(f"Generated announcement: {event}")
 

@@ -21,7 +21,7 @@ class LLM:
 
     def chat(self, message: str, temp: float, max_tokens: int) -> str:
         completion = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-3.5-turbo-1106",
             messages=message,
             temperature=temp,
             max_tokens=max_tokens
