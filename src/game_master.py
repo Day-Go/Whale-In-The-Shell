@@ -48,27 +48,27 @@ class GameMaster(LLM):
             self.generate_development()
 
     def generate_announcement(self):
-        new_entity = self.create_new_entity()
-        logging.info(f"Created new entity with id {new_entity['id']}")
+        new_org = self.create_new_org()
+        logging.info(f"Created new organisation with id {new_org['id']}")
 
         new_product = self.create_new_product(
-            entity_id=new_entity['id'], 
-            entity_type=new_entity['type'], 
-            entity_name=new_entity['name']
+            org_id=new_org['id'], 
+            org_type=new_org['type'], 
+            org_name=new_org['name']
         )
         logging.info(f"Created new product with id {new_product['id']}")
 
-        message = self.build_announcement_message(new_entity, new_product)
+        message = self.build_announcement_message(new_org, new_product)
 
-        self.prompt_and_save(message, Event.ANNOUNCEMENT, new_entity, new_product)
+        self.prompt_and_save(message, Event.ANNOUNCEMENT, new_org, new_product)
 
     def generate_development(self):
         # 1. Get random event from database
         event = self.dao.get_random_recent_event(12)
         logging.info(f"Retrieved event: {event}")
 
-        # 2. Get linked entity and product (probably not needed)
-        entity = self.dao.get_entity_by_event_id(event['id'])
+        # 2. Get linked organisation and product (probably not needed)
+        organisation = self.dao.get_org_by_event_id(event['id'])
         product = self.dao.get_product_by_event_id(event['id'])
 
         # 3. Choose sentiment for the development
@@ -77,46 +77,46 @@ class GameMaster(LLM):
         # 4. Generate development that follows from the event
         message = self.build_development_message(
             event, 
-            entity, 
+            organisation, 
             product,
             sentiment.name
         )
 
-        self.prompt_and_save(message, Event.DEVELOPMENT, entity, product)
+        self.prompt_and_save(message, Event.DEVELOPMENT, organisation, product)
 
     def generate_update(self):
         event = self.dao.get_random_recent_event_by_type(Event.ANNOUNCEMENT.value, 12)
 
-        entity = self.dao.get_entity_by_event_id(event['id'])
+        organisation = self.dao.get_org_by_event_id(event['id'])
         product = self.dao.get_product_by_event_id(event['id'])
 
         message = self.build_update_message(
             event, 
-            entity, 
+            organisation, 
             product,
         )
         
-        self.prompt_and_save(message, Event.UPDATE, entity, product)
+        self.prompt_and_save(message, Event.UPDATE, organisation, product)
 
-    def build_announcement_message(self, new_entity: dict, new_product: dict):
+    def build_announcement_message(self, new_org: dict, new_product: dict):
         system_prompt =  self.dao.get_prompt_by_name('GM_SystemPrompt')
         prompt = self.dao.get_prompt_by_name('GM_Announcement')
         prompt = prompt.format(
             event='launch announcement', 
             product=new_product['name'], 
-            entity=new_entity['name']
+            organisation=new_org['name']
         )
         logging.info(f"Prompt: {prompt}")
 
         return [{"role": "system", "content": system_prompt}, 
                 {"role": "user", "content": prompt}]
 
-    def build_development_message(self, prev_event: dict, entity: dict, product: dict, sentiment: str):
+    def build_development_message(self, prev_event: dict, organisation: dict, product: dict, sentiment: str):
         system_prompt =  self.dao.get_prompt_by_name('GM_SystemPrompt')
         prompt = self.dao.get_prompt_by_name('GM_Development')
         prompt = prompt.format(
             event=prev_event['event_details'], 
-            entity=entity['name'],
+            organisation=organisation['name'],
             product=product['name'], 
             sentiment=sentiment
         )
@@ -126,12 +126,12 @@ class GameMaster(LLM):
         return [{"role": "system", "content": system_prompt}, 
                 {"role": "user", "content": prompt}]
 
-    def build_update_message(self, prev_event: dict, entity: dict, product: dict):
+    def build_update_message(self, prev_event: dict, organisation: dict, product: dict):
         system_prompt =  self.dao.get_prompt_by_name('GM_SystemPrompt')
         prompt = self.dao.get_prompt_by_name('GM_Update')
         prompt = prompt.format(
             event=prev_event['event_details'], 
-            entity=entity['name'],
+            organisation=organisation['name'],
             product=product['name'], 
         )
 
@@ -140,7 +140,7 @@ class GameMaster(LLM):
         return [{"role": "system", "content": system_prompt}, 
                 {"role": "user", "content": prompt}]
 
-    def prompt_and_save(self, message: str, event_type: Event, entity: dict, product: dict):
+    def prompt_and_save(self, message: str, event_type: Event, organisation: dict, product: dict):
         event = self.chat(message, temp=1.25, max_tokens=80)
         event_embedding = self.generate_embedding(event)
         logging.info(f"Generated announcement: {event}")
@@ -155,7 +155,7 @@ class GameMaster(LLM):
         self.dao.insert(
             'eventsentities',
             event_id=event_row.data[0]['id'],
-            entity_id=entity['id']
+            org_id=organisation['id']
         )
 
         self.dao.insert(
@@ -165,70 +165,70 @@ class GameMaster(LLM):
         )
 
 
-    def create_new_entity(self):
+    def create_new_org(self):
         try:
-            entity_type = self.dao.get_entity_type_by_id(2)
-            entity_name = self.generate_entity_attribute(
-                'GM_GenEntityName', entity_type=entity_type
+            org_type = self.dao.get_org_type_by_id(2)
+            org_name = self.generate_org_attribute(
+                'GM_GenorgName', org_type=org_type
             )
-            entity_mission = self.generate_entity_attribute(
-                'GM_GenEntityMission', entity_type=entity_type, entity_name=entity_name
+            org_mission = self.generate_org_attribute(
+                'GM_GenorgMission', org_type=org_type, org_name=org_name
             )
-            entity_desc = self.generate_entity_attribute(
-                'GM_GenEntityDesc', entity_type=entity_type, 
-                entity_name=entity_name, entity_mission=entity_mission
+            org_desc = self.generate_org_attribute(
+                'GM_GenorgDesc', org_type=org_type, 
+                org_name=org_name, org_mission=org_mission
             )
 
             response = self.dao.insert(
                 'entities',
-                name=entity_name,
-                type=entity_type,
-                description=entity_desc,
-                mission=entity_mission
+                name=org_name,
+                type=org_type,
+                description=org_desc,
+                mission=org_mission
             )
 
             return response.data[0]
         except Exception as e:
             # Properly handle exceptions and log the error
-            logging.error(f"Failed to create new entity: {e}")
+            logging.error(f"Failed to create new organisation: {e}")
             raise
 
-    def generate_entity_attribute(self, prompt_name: str, **kwargs) -> str:
+    def generate_org_attribute(self, prompt_name: str, **kwargs) -> str:
         prompt = self.dao.get_prompt_by_name(prompt_name).format(**kwargs)
         message = [{"role": "user", "content": prompt}]
         logging.info(f"Prompt: {prompt}")
 
-        entity_attribute = self.chat(message, 1.25, 80)
-        logging.info(f"Generated attribute: {entity_attribute}")
+        org_attribute = self.chat(message, 1.25, 80)
+        logging.info(f"Generated attribute: {org_attribute}")
 
-        if not entity_attribute:
-            raise ValueError(f"Failed to generate entity attribute with prompt: {prompt}")
+        if not org_attribute:
+            raise ValueError(f"Failed to generate organisation attribute with prompt: {prompt}")
 
-        return entity_attribute
+        return org_attribute
 
     def create_new_product(self, **kwargs) -> str:
         product_type = self.dao.get_random_crypto_product()
         product_name = self.generate_product_name(
-            entity_type=kwargs.get('entity_type'), 
-            entity_name=kwargs.get('entity_name'), 
+            org_type=kwargs.get('org_type'), 
+            org_name=kwargs.get('org_name'), 
             product_type=product_type
         )
 
         response = self.dao.insert(
             'products',
-            entity_id=kwargs.get('entity_id'), 
+            org_id=kwargs.get('org_id'), 
             name=product_name
         )
 
         return response.data[0]
 
     def generate_product_name(self, **kwargs) -> str:
-        entity_type = kwargs.get('entity_type')
-        entity_name = kwargs.get('entity_name')
+        org_type = kwargs.get('org_type')
+        org_name = kwargs.get('org_name')
         product_type = kwargs.get('product_type')
 
         prompt = self.dao.get_prompt_by_name('GM_GenProductName').format(
-            entity_type=entity_type, entity_name=entity_name, product_type=product_type
+            org_type=org_type, org_name=org_name, product_type=product_type
         )
 
         message = [{"role": "user", "content": prompt}]

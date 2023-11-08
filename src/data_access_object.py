@@ -23,15 +23,15 @@ class DataAccessObject:
                                  .execute()
         return response.data
 
-    def get_entity_type_by_id(self, id: int) -> str:
-        response = self.sb_client.table('entity_types') \
+    def get_org_type_by_id(self, id: int) -> str:
+        response = self.sb_client.table('org_types') \
                                  .select('name') \
                                  .eq('id', id) \
                                  .execute()
         return response.data[0]['name']
     
-    def get_random_entity_type(self) -> str:
-        response = self.sb_client.table("entity_types") \
+    def get_random_org_type(self) -> str:
+        response = self.sb_client.table("org_types") \
                                  .select("id, name", count="exact") \
                                  .execute()
         
@@ -94,16 +94,16 @@ class DataAccessObject:
         random_event = random.choice(response.data) if response.data else None
         return random_event
 
-    def get_entity_by_event_id(self, event_id: int) -> str:
-        entity_id = self.sb_client.table('eventsentities')\
-            .select('entity_id')\
+    def get_org_by_event_id(self, event_id: int) -> str:
+        org_id = self.sb_client.table('eventsentities')\
+            .select('org_id')\
             .eq('event_id', event_id)\
             .execute()
-        logging.info(f"Retrieved entity id: {entity_id}")
+        logging.info(f"Retrieved organisation id: {org_id}")
 
         response = self.sb_client.table('entities')\
             .select('id, name')\
-            .eq('id', entity_id.data[0]['entity_id'])\
+            .eq('id', org_id.data[0]['org_id'])\
             .execute()
 
         return response.data[0] if response.data else None
