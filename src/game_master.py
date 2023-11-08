@@ -41,9 +41,10 @@ class GameMaster(LLM):
 
     def process_event(self, event_type: Event) -> None:
         if event_type == Event.ANNOUNCEMENT:
-            # self.generate_announcement()
-            # self.generate_development()
+            self.generate_announcement()
             self.generate_update()
+            self.generate_development()
+            
         else:
             self.generate_development()
 
@@ -104,7 +105,7 @@ class GameMaster(LLM):
         prompt = prompt.format(
             event='launch announcement', 
             product=new_product['name'], 
-            organisation=new_org['name']
+            org=new_org['name']
         )
         logging.info(f"Prompt: {prompt}")
 
@@ -116,7 +117,7 @@ class GameMaster(LLM):
         prompt = self.dao.get_prompt_by_name('GM_Development')
         prompt = prompt.format(
             event=prev_event['event_details'], 
-            organisation=organisation['name'],
+            org=organisation['name'],
             product=product['name'], 
             sentiment=sentiment
         )
@@ -131,7 +132,7 @@ class GameMaster(LLM):
         prompt = self.dao.get_prompt_by_name('GM_Update')
         prompt = prompt.format(
             event=prev_event['event_details'], 
-            organisation=organisation['name'],
+            org=organisation['name'],
             product=product['name'], 
         )
 
@@ -153,7 +154,7 @@ class GameMaster(LLM):
         )
 
         self.dao.insert(
-            'eventsentities',
+            'eventsorganisations',
             event_id=event_row.data[0]['id'],
             org_id=organisation['id']
         )
@@ -169,18 +170,18 @@ class GameMaster(LLM):
         try:
             org_type = self.dao.get_org_type_by_id(2)
             org_name = self.generate_org_attribute(
-                'GM_GenorgName', org_type=org_type
+                'GM_GenOrgName', org_type=org_type
             )
             org_mission = self.generate_org_attribute(
-                'GM_GenorgMission', org_type=org_type, org_name=org_name
+                'GM_GenOrgMission', org_type=org_type, org_name=org_name
             )
             org_desc = self.generate_org_attribute(
-                'GM_GenorgDesc', org_type=org_type, 
+                'GM_GenOrgDesc', org_type=org_type, 
                 org_name=org_name, org_mission=org_mission
             )
 
             response = self.dao.insert(
-                'entities',
+                'organisations',
                 name=org_name,
                 type=org_type,
                 description=org_desc,

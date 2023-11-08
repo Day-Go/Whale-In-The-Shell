@@ -69,9 +69,9 @@ def new_org_test():
     gm.timestep()
 
 if __name__ == '__main__':
-    # new_org_test()
+    new_org_test()
     # game_master_test()
-    agent_test()
+    # agent_test()
     # embedding_similarity_test([None])
 
 

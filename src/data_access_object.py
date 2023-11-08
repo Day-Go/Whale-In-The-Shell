@@ -24,7 +24,7 @@ class DataAccessObject:
         return response.data
 
     def get_org_type_by_id(self, id: int) -> str:
-        response = self.sb_client.table('org_types') \
+        response = self.sb_client.table('organisation_types') \
                                  .select('name') \
                                  .eq('id', id) \
                                  .execute()
@@ -95,13 +95,13 @@ class DataAccessObject:
         return random_event
 
     def get_org_by_event_id(self, event_id: int) -> str:
-        org_id = self.sb_client.table('eventsentities')\
+        org_id = self.sb_client.table('eventsorganisations')\
             .select('org_id')\
             .eq('event_id', event_id)\
             .execute()
         logging.info(f"Retrieved organisation id: {org_id}")
 
-        response = self.sb_client.table('entities')\
+        response = self.sb_client.table('organisations')\
             .select('id, name')\
             .eq('id', org_id.data[0]['org_id'])\
             .execute()
