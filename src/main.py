@@ -8,6 +8,7 @@ from supabase import create_client, Client
 
 from agent import Agent
 from game_master import GameMaster
+from generators import OrgGenerator, AgentGenerator
 from data_access_object import DataAccessObject
 from models.enums import Event 
 
@@ -20,33 +21,6 @@ dao = DataAccessObject(supabase)
 api_key = os.getenv('OPENAI_API')
 openai.api_key = api_key
 
-def game_master_test():
-    gm = GameMaster(api_key, supabase)
-
-    gm.set_system_prompt()
-
-    organisation = 'Fal Hinney'
-    product = 'Link Swap'
-    sentiment = 'neutral'
-    event_type = Event.ANNOUNCEMENT
-    response = gm.generate_message(organisation, product, sentiment, event_type)
-
-    response_embedding = openai.Embedding.create(
-        input=response,
-        model='text-embedding-ada-002'
-    )
-
-    embedding = response_embedding['data'][0]['embedding']
-
-    data = {
-        'event_type': event_type,
-        'event_details': response,
-        'embedding': embedding
-    }
-    
-    print(response)
-    supabase.table('events').insert(data).execute()
-    # supabase.table('events')
 
 def agent_test():
     agent_id = 2
@@ -65,12 +39,13 @@ def embedding_similarity_test(query_embedding):
         print(similarity)
 
 def new_org_test():
-    gm = GameMaster(api_key, dao)
+    org_generator = OrgGenerator(api_key, dao)
+    agent_generator = AgentGenerator(api_key, dao)
+    gm = GameMaster(api_key, dao, org_generator, agent_generator)
     gm.timestep()
 
 if __name__ == '__main__':
     new_org_test()
-    # game_master_test()
     # agent_test()
     # embedding_similarity_test([None])
 

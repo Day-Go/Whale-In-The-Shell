@@ -6,6 +6,7 @@ from supabase import Client
 from llm import LLM
 from data_access_object import DataAccessObject
 from models.enums import Event, SENTIMENT
+from generators import OrgGenerator, AgentGenerator
 
 logging.basicConfig(level=logging.INFO)
 
@@ -14,10 +15,19 @@ ANNOUNCEMENT_PROBABILITY_END = 5
 MAX_STEP_COUNT = 1000
 
 class GameMaster(LLM):
-    def __init__(self, api_key: str, dao: DataAccessObject):
+    def __init__(
+            self, 
+            api_key: str, 
+            dao: DataAccessObject, 
+            org_generator: OrgGenerator, 
+            agent_generator: AgentGenerator
+        ):
         super().__init__(api_key)
         self.dao = dao
+        self.org_generator = org_generator
+        self.agent_generator = agent_generator
         self.step_count = 0
+
 
     def get_event_type(self) -> Event:
         probability = self.calculate_announcement_probability(self.step_count)
@@ -49,10 +59,10 @@ class GameMaster(LLM):
             self.generate_development()
 
     def generate_announcement(self):
-        new_org = self.create_new_org()
+        new_org = self.org_generator.create()
         logging.info(f"Created new organisation with id {new_org['id']}")
 
-        new_product = self.create_new_product(
+        new_product = self.org_generator.create_new_product(
             org_id=new_org['id'], 
             org_type=new_org['type'], 
             org_name=new_org['name']
@@ -165,81 +175,3 @@ class GameMaster(LLM):
             product_id=product['id']
         )
 
-
-    def create_new_org(self):
-        try:
-            org_type = self.dao.get_org_type_by_id(2)
-            org_name = self.generate_org_attribute(
-                'GM_GenOrgName', org_type=org_type
-            )
-            org_mission = self.generate_org_attribute(
-                'GM_GenOrgMission', org_type=org_type, org_name=org_name
-            )
-            org_desc = self.generate_org_attribute(
-                'GM_GenOrgDesc', org_type=org_type, 
-                org_name=org_name, org_mission=org_mission
-            )
-
-            response = self.dao.insert(
-                'organisations',
-                name=org_name,
-                type=org_type,
-                description=org_desc,
-                mission=org_mission
-            )
-
-            return response.data[0]
-        except Exception as e:
-            # Properly handle exceptions and log the error
-            logging.error(f"Failed to create new organisation: {e}")
-            raise
-
-    def generate_org_attribute(self, prompt_name: str, **kwargs) -> str:
-        prompt = self.dao.get_prompt_by_name(prompt_name).format(**kwargs)
-        message = [{"role": "user", "content": prompt}]
-        logging.info(f"Prompt: {prompt}")
-
-        org_attribute = self.chat(message, 1.25, 80)
-        logging.info(f"Generated attribute: {org_attribute}")
-
-        if not org_attribute:
-            raise ValueError(f"Failed to generate organisation attribute with prompt: {prompt}")
-
-        return org_attribute
-
-    def create_new_product(self, **kwargs) -> str:
-        product_type = self.dao.get_random_crypto_product()
-        product_name = self.generate_product_name(
-            org_type=kwargs.get('org_type'), 
-            org_name=kwargs.get('org_name'), 
-            product_type=product_type
-        )
-
-        response = self.dao.insert(
-            'products',
-            org_id=kwargs.get('org_id'), 
-            name=product_name
-        )
-
-        return response.data[0]
-
-    def generate_product_name(self, **kwargs) -> str:
-        org_type = kwargs.get('org_type')
-        org_name = kwargs.get('org_name')
-        product_type = kwargs.get('product_type')
-
-        prompt = self.dao.get_prompt_by_name('GM_GenProductName').format(
-            org_type=org_type, org_name=org_name, product_type=product_type
-        )
-
-        message = [{"role": "user", "content": prompt}]
-        logging.info(f"Prompt: {prompt}")
-
-        product_name = self.chat(message, 1.25, 80)
-        logging.info(f"Generated product name: {product_name}")
-
-        if not product_name:
-            raise ValueError(f"Failed to generate product name with prompt: {prompt}")
-
-        return product_name
-        
