@@ -28,6 +28,7 @@ class GameMaster(LLM):
         self.agent_generator = agent_generator
         self.step_count = 0
 
+        self.system_prompt =  self.dao.get_prompt_by_name('GM_SystemPrompt')
 
     def get_event_type(self) -> Event:
         probability = self.calculate_announcement_probability(self.step_count)
@@ -110,7 +111,6 @@ class GameMaster(LLM):
         self.prompt_and_save(message, Event.UPDATE, organisation, product)
 
     def build_announcement_message(self, new_org: dict, new_product: dict):
-        system_prompt =  self.dao.get_prompt_by_name('GM_SystemPrompt')
         prompt = self.dao.get_prompt_by_name('GM_Announcement')
         prompt = prompt.format(
             event='launch announcement', 
@@ -119,11 +119,10 @@ class GameMaster(LLM):
         )
         logging.info(f"Prompt: {prompt}")
 
-        return [{"role": "system", "content": system_prompt}, 
+        return [{"role": "system", "content": self.system_prompt}, 
                 {"role": "user", "content": prompt}]
 
     def build_development_message(self, prev_event: dict, organisation: dict, product: dict, sentiment: str):
-        system_prompt =  self.dao.get_prompt_by_name('GM_SystemPrompt')
         prompt = self.dao.get_prompt_by_name('GM_Development')
         prompt = prompt.format(
             event=prev_event['event_details'], 
@@ -134,11 +133,10 @@ class GameMaster(LLM):
 
         logging.info(f"Prompt: {prompt}")
 
-        return [{"role": "system", "content": system_prompt}, 
+        return [{"role": "system", "content": self.system_prompt}, 
                 {"role": "user", "content": prompt}]
 
     def build_update_message(self, prev_event: dict, organisation: dict, product: dict):
-        system_prompt =  self.dao.get_prompt_by_name('GM_SystemPrompt')
         prompt = self.dao.get_prompt_by_name('GM_Update')
         prompt = prompt.format(
             event=prev_event['event_details'], 
@@ -148,7 +146,7 @@ class GameMaster(LLM):
 
         logging.info(f"Prompt: {prompt}")
 
-        return [{"role": "system", "content": system_prompt}, 
+        return [{"role": "system", "content": self.system_prompt}, 
                 {"role": "user", "content": prompt}]
 
     def prompt_and_save(self, message: str, event_type: Event, organisation: dict, product: dict):

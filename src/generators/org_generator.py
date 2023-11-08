@@ -1,6 +1,6 @@
 import logging
 
-from entity_generator import EntityGenerator
+from generators.entity_generator import EntityGenerator
 from llm import LLM
 from data_access_object import DataAccessObject
 
@@ -14,13 +14,13 @@ class OrgGenerator(LLM, EntityGenerator):
         try:
             org_type = self.dao.get_org_type_by_id(2)
             org_name = self.generate_org_attribute(
-                'GM_GenOrgName', org_type=org_type
+                'OG_GenOrgName', org_type=org_type
             )
             org_mission = self.generate_org_attribute(
-                'GM_GenOrgMission', org_type=org_type, org_name=org_name
+                'OG_GenOrgMission', org_type=org_type, org_name=org_name
             )
             org_desc = self.generate_org_attribute(
-                'GM_GenOrgDesc', org_type=org_type, 
+                'OG_GenOrgDesc', org_type=org_type, 
                 org_name=org_name, org_mission=org_mission
             )
 
@@ -45,7 +45,6 @@ class OrgGenerator(LLM, EntityGenerator):
     def deactivate(self, organization):
         # Logic to deactivate an organization
         pass
-
 
     def generate_org_attribute(self, prompt_name: str, **kwargs) -> str:
         prompt = self.dao.get_prompt_by_name(prompt_name).format(**kwargs)
@@ -81,7 +80,7 @@ class OrgGenerator(LLM, EntityGenerator):
         org_name = kwargs.get('org_name')
         product_type = kwargs.get('product_type')
 
-        prompt = self.dao.get_prompt_by_name('GM_GenProductName').format(
+        prompt = self.dao.get_prompt_by_name('OG_GenProductName').format(
             org_type=org_type, org_name=org_name, product_type=product_type
         )
 

@@ -23,9 +23,8 @@ openai.api_key = api_key
 
 
 def agent_test():
-    agent_id = 2
-    agent = Agent(api_key, supabase, agent_id)
-    response = agent.observe()
+    agent_generator = AgentGenerator(api_key, dao)
+    agent_generator.create()
 
 def embedding_similarity_test(query_embedding):
     response = supabase.table('memories').select('id, embedding').execute()
@@ -45,8 +44,8 @@ def new_org_test():
     gm.timestep()
 
 if __name__ == '__main__':
-    new_org_test()
-    # agent_test()
+    # new_org_test()
+    agent_test()
     # embedding_similarity_test([None])
 
 

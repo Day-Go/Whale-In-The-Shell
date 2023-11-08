@@ -120,3 +120,35 @@ class DataAccessObject:
             .execute()
 
         return response.data[0] if response.data else None
+    
+    def get_random_nationality(self) -> str:
+        nationalities = self.sb_client.table('nationalities')\
+            .select('id, name', count="exact")\
+            .execute()
+        
+        idx = random.randint(1, nationalities.count)
+        return nationalities.data[idx]['name']
+
+    def get_nationality_by_id(self, nationality_id: int) -> str:
+        nationality = self.sb_client.table('nationalities')\
+            .select('id, name')\
+            .eq('id', nationality_id)\
+            .execute()
+        
+        return nationality.data[0]['name'] if nationality.data else None
+
+    def get_random_occupation(self) -> str:
+        occupations = self.sb_client.table('occupations')\
+            .select('id, name', count="exact")\
+            .execute()
+        
+        idx = random.randint(1, occupations.count)
+        return occupations.data[idx]['name']
+
+    def get_occupation_by_id(self, occupation_id: int) -> str:
+        occupation = self.sb_client.table('occupations')\
+            .select('id, name')\
+            .eq('id', occupation_id)\
+            .execute()
+        
+        return occupation.data[0]['name'] if occupation.data else None
