@@ -152,3 +152,18 @@ class DataAccessObject:
             .execute()
         
         return occupation.data[0]['name'] if occupation.data else None
+    
+    def get_n_random_traits(self, n: int) -> list:
+        traits = self.sb_client.table('traits')\
+            .select('id, trait, anti_trait', count="exact")\
+            .execute()
+        
+        sampled_rows = random.sample(traits.data, n)
+        
+        random_traits = []
+        for row in sampled_rows:
+            is_positive = random.random() < 0.5
+            chosen_trait = row['trait'] if is_positive else row['anti_trait']
+            random_traits.append({'id': row['id'], 'trait': chosen_trait, 'is_positive': is_positive})
+        
+        return random_traits

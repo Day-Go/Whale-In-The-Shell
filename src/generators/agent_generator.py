@@ -14,10 +14,10 @@ class AgentGenerator(LLM, EntityGenerator):
         self.system_prompt = self.dao.get_prompt_by_name('AG_SystemPrompt')
 
     def create(self):
-
         try:
-            nationality = self.dao.get_nationality_by_id(23)
-            occupation = self.dao.get_occupation_by_id(78)
+            nationality = self.dao.get_random_nationality()
+            occupation = self.dao.get_random_occupation()
+            traits = self.dao.get_n_random_traits(5)
 
             agent_name = self.generate_agent_attribute(
                 'AG_GenAgentName', nationality=nationality, occupation=occupation
@@ -28,7 +28,8 @@ class AgentGenerator(LLM, EntityGenerator):
             )
             agent_bio = self.generate_agent_attribute(
                 'AG_GenAgentBio', nationality=nationality, 
-                occupation=occupation, agent_name=agent_name
+                occupation=occupation, agent_name=agent_name,
+                traits=traits
             )
 
             response = self.dao.insert(
@@ -40,6 +41,14 @@ class AgentGenerator(LLM, EntityGenerator):
                 biography=agent_bio
             )
 
+            for trait in traits:
+                self.dao.insert(
+                    'agentstraits',
+                    agent_id=response.data[0]['id'],
+                    trait_id=trait['id'],
+                    is_positive=trait['is_positive']
+                )
+
             return response.data[0]
         
         except Exception as e:
@@ -47,12 +56,6 @@ class AgentGenerator(LLM, EntityGenerator):
             logging.error(f'Failed to create new agent: {e}')
             raise
 
-
-        # Generate name
-
-        # Create biography
-
-        # Insert into database
         pass
 
     def update(self, agent):
@@ -64,6 +67,14 @@ class AgentGenerator(LLM, EntityGenerator):
         pass
 
     def generate_agent_attribute(self, prompt_name: str, **kwargs) -> str:
+        if 'traits' in kwargs:
+            traits_list = kwargs['traits']
+            # Convert the list of trait dictionaries into a string representation
+            traits_str = ', '.join([f"{trait['trait']}" 
+                                    for trait in traits_list])
+
+            kwargs['traits'] = traits_str
+
         prompt = self.dao.get_prompt_by_name(prompt_name).format(**kwargs)
         message = [{'role': 'system', 'content': self.system_prompt}, 
                    {'role': 'user', 'content': prompt}]
