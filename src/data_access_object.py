@@ -4,6 +4,7 @@ from typing import Any
 from datetime import datetime, timedelta
 from supabase import Client
 
+
 class DataAccessObject:
     def __init__(self, client: Client):
         self.sb_client = client
@@ -45,8 +46,7 @@ class DataAccessObject:
                                  .select("id, name", count="exact") \
                                  .execute()
         
-        idx = random.randint(1,response.count)
-        return response.data[idx]['name']
+        return random.choice(response.data)['name']
 
     def get_crypto_product_by_id(self, id: int) -> str:
         response = self.sb_client.table('crypto_products') \
@@ -60,8 +60,7 @@ class DataAccessObject:
                                  .select("id, name", count="exact") \
                                  .execute()
         
-        idx = random.randint(1,response.count)
-        return response.data[idx]['name']
+        return random.choice(response.data)['name']
     
     def get_prompt_by_name(self, prompt_name: str) -> str:
         try:
@@ -109,7 +108,6 @@ class DataAccessObject:
             .select('org_id')\
             .eq('event_id', event_id)\
             .execute()
-        logging.info(f"Retrieved organisation id: {org_id}")
 
         response = self.sb_client.table('organisations')\
             .select('id, name')\
@@ -136,8 +134,7 @@ class DataAccessObject:
             .select('id, name', count="exact")\
             .execute()
         
-        idx = random.randint(1, nationalities.count)
-        return nationalities.data[idx]['name']
+        return random.choice(nationalities.data)['name']
 
     def get_nationality_by_id(self, nationality_id: int) -> str:
         nationality = self.sb_client.table('nationalities')\
@@ -152,8 +149,7 @@ class DataAccessObject:
             .select('id, name', count="exact")\
             .execute()
         
-        idx = random.randint(1, occupations.count)
-        return occupations.data[idx]['name']
+        return random.choice(occupations.data)['name']
 
     def get_occupation_by_id(self, occupation_id: int) -> str:
         occupation = self.sb_client.table('occupations')\

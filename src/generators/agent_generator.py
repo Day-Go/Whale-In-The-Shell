@@ -15,7 +15,7 @@ class AgentGenerator(LLM, EntityGenerator):
 
     def create(self):
         try:
-            nationality = self.dao.get_nationality_by_id(54)
+            nationality = self.dao.get_random_nationality()
             occupation = self.dao.get_random_occupation()
             traits = self.dao.get_n_random_traits(5)
             investment_style = self.dao.get_random_investment_style()
@@ -23,15 +23,17 @@ class AgentGenerator(LLM, EntityGenerator):
             communication_style = self.dao.get_random_communication_style()
 
             agent_name = self.generate_agent_attribute(
-                'AG_GenAgentName', nationality=nationality, occupation=occupation
+                'AG_GenAgentName', tok_limit=10, temp=1.25,
+                 nationality=nationality, occupation=occupation
             )
             agent_handle = self.generate_agent_attribute(
-                'AG_GenAgentHandle', traits=traits
+                'AG_GenAgentHandle', tok_limit=10, temp=1.5, 
+                traits=traits, communication_style=communication_style
             )
             agent_bio = self.generate_agent_attribute(
-                'AG_GenAgentBio', nationality=nationality, 
-                occupation=occupation, agent_name=agent_name,
-                traits=traits
+                'AG_GenAgentBio', tok_limit=150, temp=1.25 ,
+                nationality=nationality, occupation=occupation, 
+                agent_name=agent_name, traits=traits
             )
 
             response = self.dao.insert(
@@ -67,7 +69,8 @@ class AgentGenerator(LLM, EntityGenerator):
         # Logic to deactivate an agent
         pass
 
-    def generate_agent_attribute(self, prompt_name: str, **kwargs) -> str:
+    def generate_agent_attribute(self, prompt_name: str, tok_limit: int, 
+                                 temp: float, **kwargs) -> str:
         if 'traits' in kwargs:
             traits_list = kwargs['traits']
             # Convert the list of trait dictionaries into a string representation
@@ -85,12 +88,7 @@ class AgentGenerator(LLM, EntityGenerator):
 
         logging.info(f'Prompt: {prompt}')
 
-        if prompt_name == 'AG_GenAgentHandle':
-            temp = 1.5
-        else:
-            temp = 1.25
-
-        agent_attribute = self.chat(message, temp=temp, max_tokens=150)
+        agent_attribute = self.chat(message, temp=temp, max_tokens=tok_limit)
         logging.info(f'Generated attribute: {agent_attribute}')
 
         if not agent_attribute:

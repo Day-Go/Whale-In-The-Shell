@@ -1,8 +1,7 @@
 import os
-import re
 import ast
-import vecs
 import openai
+import logging
 import numpy as np
 from supabase import create_client, Client
 
@@ -10,7 +9,6 @@ from agent import Agent
 from game_master import GameMaster
 from generators import OrgGenerator, AgentGenerator
 from data_access_object import DataAccessObject
-from models.enums import Event 
 
 url: str = os.getenv('SUPABASE_URL')
 key: str = os.getenv('SUPABASE_SERVICE_KEY')
@@ -35,9 +33,8 @@ def agent_generator_test():
 def agent_test(agent):
     agent_id = agent['id']
     agent = Agent(agent_id, api_key, dao)
-    agent.update_goal()
-
-
+    opinion = agent.form_opinion('Cryptocurrencies and web3')
+    agent.update_goal(opinion)
 
 def embedding_similarity_test(query_embedding):
     response = supabase.table('memories').select('id, embedding').execute()
