@@ -33,8 +33,9 @@ def agent_generator_test():
 def agent_test(agent):
     agent_id = agent['id']
     agent = Agent(agent_id, api_key, dao)
-    opinion = agent.form_opinion('Cryptocurrencies and web3')
-    agent.update_goal(opinion)
+    # opinion = agent.form_opinion('Cryptocurrencies and web3')
+    # agent.update_goal(opinion)
+    agent.observe(52)
 
 def embedding_similarity_test(query_embedding):
     response = supabase.table('memories').select('id, embedding').execute()

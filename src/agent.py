@@ -14,6 +14,7 @@ class Agent(LLM):
         self.dao = dao
 
         self.get_agent_information()
+        self.system_prompt = self.get_system_prompt()
 
     def get_agent_information(self) -> None:
         response = self.dao.get_agent_by_id(self.id)
@@ -30,11 +31,10 @@ class Agent(LLM):
         return system_prompt
 
     def form_opinion(self, subject):
-        system_prompt = self.get_system_prompt()
-        prompt = self.dao.get_prompt_by_name('A_FormOpinion')
+        prompt = self.dao.get_prompt_by_name('A_SubjectOpinion')
         prompt = prompt.format(subject=subject)
 
-        message = [{'role' :'system', 'content': system_prompt},
+        message = [{'role' :'system', 'content': self.system_prompt},
                      {"role": "user", "content": prompt}]
         
         opinion = self.chat(message, 1.25, 80)
@@ -43,12 +43,11 @@ class Agent(LLM):
         return opinion
 
     def update_goal(self, opinion: str):
-        system_prompt = self.get_system_prompt()
         prompt = self.dao.get_prompt_by_name('A_UpdateGoal')
         prompt = prompt.format(opinion=opinion)
         logging.info(f'Prompt: {prompt}')
 
-        message = [{'role' :'system', 'content': system_prompt},
+        message = [{'role' :'system', 'content': self.system_prompt},
                    {"role": "user", "content": prompt}]
 
         goal = self.chat(message, 1.25, 150)
@@ -57,7 +56,25 @@ class Agent(LLM):
         self.dao.update('agents', self.id, goals=goal)
 
     def observe(self, event_id: int):
-        event = self.dao.get_even
+        event = self.dao.get_event_by_id(event_id)
+        product = self.dao.get_product_by_event_id(event_id)
+
+        subject_opinion = self.form_opinion(product['type'])
+        logging.info(f'Subject opinion: {subject_opinion}')
+
+        prompt = self.dao.get_prompt_by_name('A_EventOpinion')
+        prompt = prompt.format(
+            event=event['event_details'], product_type=product['type'],
+            opinion=subject_opinion, product_name=product['name'])
+        logging.info(f'Prompt: {prompt}')
+
+        message = [{'role' :'system', 'content': self.system_prompt},
+                   {"role": "user", "content": prompt}]
+        
+        product_opinion = self.chat(message, 1.25, 80)
+        logging.info(f'Product opinion: {product_opinion}')
+
+        
 
     def reflect(self):
         pass

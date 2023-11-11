@@ -75,7 +75,15 @@ class DataAccessObject:
         except Exception as e:
             logging.error(f"An error occurred while retrieving the prompt: {e}")
             return None
-        
+
+    def get_event_by_id(self, event_id: int) -> str:
+        response = self.sb_client.table('events')\
+            .select('id, event_details, created_at, embedding, event_type')\
+            .eq('id', event_id)\
+            .execute()
+
+        return response.data[0]
+    
     def get_random_recent_event(self, time_delta_hours: int):
         now = datetime.now()
         one_hour_ago = now - timedelta(hours=time_delta_hours)
@@ -123,7 +131,7 @@ class DataAccessObject:
             .execute()
         
         response = self.sb_client.table('products')\
-            .select('id, name')\
+            .select('id, name, type')\
             .eq('id', product_id.data[0]['product_id'])\
             .execute()
 

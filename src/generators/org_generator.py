@@ -70,7 +70,8 @@ class OrgGenerator(LLM, EntityGenerator):
         response = self.dao.insert(
             'products',
             org_id=kwargs.get('org_id'), 
-            name=product_name
+            name=product_name,
+            type=product_type
         )
 
         return response.data[0]
