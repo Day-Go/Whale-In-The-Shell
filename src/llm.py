@@ -29,7 +29,7 @@ class LLM:
 
         reply_content = completion.choices[0].message['content'] 
 
-        if '.' in reply_content:
+        if '.' in reply_content and len(reply_content) > 30:
             reply_content = self.truncate_unfinished_sentence(reply_content)
             
         return reply_content

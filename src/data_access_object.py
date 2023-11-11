@@ -167,3 +167,27 @@ class DataAccessObject:
             random_traits.append({'id': row['id'], 'trait': chosen_trait, 'is_positive': is_positive})
         
         return random_traits
+
+    def get_random_investment_style(self) -> str:
+        trading_styles = self.sb_client.table('investment_styles')\
+            .select('id, style', count="exact")\
+            .execute()
+        
+        idx = random.randint(1, trading_styles.count)
+        return trading_styles.data[idx]['style']
+    
+    def get_random_risk_tolerance(self) -> str:
+        risk_tolerances = self.sb_client.table('risktolerances')\
+            .select('id, tolerance_level', count="exact")\
+            .execute()
+        
+        idx = random.randint(1, risk_tolerances.count)
+        return risk_tolerances.data[idx]['tolerance_level']
+    
+    def get_random_communication_style(self) -> str:
+        communication_styles = self.sb_client.table('communication_styles')\
+            .select('id, style', count="exact")\
+            .execute()
+        
+        idx = random.randint(1, communication_styles.count)
+        return communication_styles.data[idx]['style']

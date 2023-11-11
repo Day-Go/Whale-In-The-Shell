@@ -15,9 +15,12 @@ class AgentGenerator(LLM, EntityGenerator):
 
     def create(self):
         try:
-            nationality = self.dao.get_random_nationality()
+            nationality = self.dao.get_nationality_by_id(54)
             occupation = self.dao.get_random_occupation()
             traits = self.dao.get_n_random_traits(5)
+            investment_style = self.dao.get_random_investment_style()
+            risk_tolerance = self.dao.get_random_risk_tolerance()
+            communication_style = self.dao.get_random_communication_style()
 
             agent_name = self.generate_agent_attribute(
                 'AG_GenAgentName', nationality=nationality, occupation=occupation
@@ -34,11 +37,10 @@ class AgentGenerator(LLM, EntityGenerator):
 
             response = self.dao.insert(
                 'agents',
-                name=agent_name,
-                handle=agent_handle,
-                occupation=occupation,
-                nationality=nationality,
-                biography=agent_bio
+                name=agent_name, handle=agent_handle, occupation=occupation,
+                nationality=nationality, biography=agent_bio, 
+                investment_style=investment_style, risk_tolerance=risk_tolerance,
+                communication_style=communication_style
             )
 
             for trait in traits:
@@ -76,11 +78,15 @@ class AgentGenerator(LLM, EntityGenerator):
             kwargs['traits'] = traits_str
 
         prompt = self.dao.get_prompt_by_name(prompt_name).format(**kwargs)
-        message = [{'role': 'system', 'content': self.system_prompt}, 
-                   {'role': 'user', 'content': prompt}]
+        if prompt_name == 'AG_GenAgentBio':
+            message = [{'role': 'system', 'content': self.system_prompt}, 
+                       {'role': 'user', 'content': prompt}]
+        else:
+            message = [{'role': 'user', 'content': prompt}]
+
         logging.info(f'Prompt: {prompt}')
 
-        agent_attribute = self.chat(message, 1.25, 80)
+        agent_attribute = self.chat(message, 1.25, 150)
         logging.info(f'Generated attribute: {agent_attribute}')
 
         if not agent_attribute:
