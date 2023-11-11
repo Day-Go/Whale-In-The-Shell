@@ -21,10 +21,23 @@ dao = DataAccessObject(supabase)
 api_key = os.getenv('OPENAI_API')
 openai.api_key = api_key
 
-
-def agent_test():
+def org_generator_test():
+    org_generator = OrgGenerator(api_key, dao)
     agent_generator = AgentGenerator(api_key, dao)
-    agent_generator.create()
+    gm = GameMaster(api_key, dao, org_generator, agent_generator)
+    gm.timestep()
+
+def agent_generator_test():
+    agent_generator = AgentGenerator(api_key, dao)
+    agent = agent_generator.create()
+    return agent
+
+def agent_test(agent):
+    agent_id = agent['id']
+    agent = Agent(agent_id, api_key, dao)
+    agent.update_goal()
+
+
 
 def embedding_similarity_test(query_embedding):
     response = supabase.table('memories').select('id, embedding').execute()
@@ -37,15 +50,11 @@ def embedding_similarity_test(query_embedding):
 
         print(similarity)
 
-def new_org_test():
-    org_generator = OrgGenerator(api_key, dao)
-    agent_generator = AgentGenerator(api_key, dao)
-    gm = GameMaster(api_key, dao, org_generator, agent_generator)
-    gm.timestep()
 
 if __name__ == '__main__':
-    # new_org_test()
-    agent_test()
+    # org_generator_test()
+    agent = agent_generator_test()
+    agent_test(agent)
     # embedding_similarity_test([None])
 
 

@@ -16,12 +16,22 @@ class DataAccessObject:
             logging.error(f"An error occurred during insert operation on {table_name}: {e}")
             return None
 
+    def update(self, table_name: str, id: int, **kwargs) -> Any:
+        try:
+            data = kwargs
+            return self.sb_client.table(table_name).update(data).eq('id', id).execute()
+        except Exception as e:
+            logging.error(f"An error occurred during update operation on {table_name}: {e}")
+            return None
+
     def get_agent_by_id(self, agent_id):
+        columns = ('name, biography, occupation, handle, nationality, '
+                   'investment_style, risk_tolerance, communication_style')
         response = self.sb_client.table('agents') \
-                                 .select('name, biography') \
+                                 .select(columns) \
                                  .eq('id', agent_id) \
                                  .execute()
-        return response.data
+        return response.data[0]
 
     def get_org_type_by_id(self, id: int) -> str:
         response = self.sb_client.table('organisation_types') \
@@ -173,21 +183,18 @@ class DataAccessObject:
             .select('id, style', count="exact")\
             .execute()
         
-        idx = random.randint(1, trading_styles.count)
-        return trading_styles.data[idx]['style']
-    
+        return random.choice(trading_styles.data)['style']
+
     def get_random_risk_tolerance(self) -> str:
         risk_tolerances = self.sb_client.table('risktolerances')\
             .select('id, tolerance_level', count="exact")\
             .execute()
         
-        idx = random.randint(1, risk_tolerances.count)
-        return risk_tolerances.data[idx]['tolerance_level']
-    
+        return random.choice(risk_tolerances.data)['tolerance_level']
+
     def get_random_communication_style(self) -> str:
         communication_styles = self.sb_client.table('communication_styles')\
             .select('id, style', count="exact")\
             .execute()
         
-        idx = random.randint(1, communication_styles.count)
-        return communication_styles.data[idx]['style']
+        return random.choice(communication_styles.data)['style']

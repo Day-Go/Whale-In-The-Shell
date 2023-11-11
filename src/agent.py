@@ -15,49 +15,41 @@ class Agent(LLM):
         self.dao = dao
 
         self.get_agent_information()
-        self.set_system_prompt()
-        self.message_history = [{"role": "system", "content": f"{self.system_prompt}"}]
 
     def get_agent_information(self) -> None:
         response = self.dao.get_agent_by_id(self.id)
-        self.agent_name = response.data[0]['name']
-        self.biography = response.data[0]['biography']
+        self.__dict__.update(response)
+        
+    def get_system_prompt(self) -> None:
+        prompt = self.dao.get_prompt_by_name('A_SystemPrompt')
 
-    def set_system_prompt(self) -> None:
-        prompt_name = 'AgentSystemPrompt'
-        prompt = self.dao.get_prompt_by_name(prompt_name)
+        system_prompt = prompt.format(
+            agent_name=self.name, agent_bio=self.biography,
+            investment_style=self.investment_style, risk_tolerance=self.risk_tolerance,
+            communication_style=self.communication_style)
+        
+        logging.info(f'System prompt: {system_prompt}')
+        return system_prompt
 
-        self.system_prompt = prompt.format(name=self.agent_name, biography=self.biography)
-        logging.info(f'System prompt: {self.system_prompt}')
+    def form_opinion(self):
+        pass
+
+    def update_goal(self):
+        system_prompt = self.get_system_prompt()
+
+        prompt = self.dao.get_prompt_by_name('A_UpdateGoal')
+        logging.info(f'Prompt: {prompt}')
+
+        message = [{'role' :'system', 'content': system_prompt},
+                   {"role": "user", "content": prompt}]
+
+        goal = self.chat(message, 1.25, 80)
+        logging.info(f'Goal: {goal}')
+
+        self.dao.update('agents', self.id, goals=goal)
 
     def observe(self):
-        event = self.dao.get_random_recent_event(time_delta_minutes=10000)
-        if not event:
-            logging.warning("No recent events found.")
-            return None
-    
-        event_id = event['id']
-        event_details = event['event_details']
-        logging.info(f'Event observed: {event}')
-
-        prompt_name = 'AgentObserve'
-        prompt = self.dao.get_prompt_by_name(prompt_name)
-
-        # TODO: Proper exception handling
-        if prompt:
-            prompt = prompt.format(name=self.agent_name, event=event_details)
-            logging.info(f"Formatted prompt: {prompt}")
-
-            message = self.message_history + [{"role": "user", "content": f"{prompt}"}]
-            reply_content = self.chat(message)
-            logging.info(f"Reply from OpenAI: {reply_content}")
-        else:
-            logging.warning(f"Prompt {prompt_name} not found or could not be formatted.")
-            reply_content = None
-
-        self.insert_memory(reply_content, event_id)
-
-        return reply_content
+        pass
 
     def reflect(self):
         pass
@@ -66,26 +58,4 @@ class Agent(LLM):
         pass
 
     def insert_memory(self, response: str, event_id: int):
-        # Responses can be cut off mid sentence due to token limit.
-        # Use a regular expression to match complete sentences
-        matches = re.findall(r'\s*[^.!?]*[.!?]', response)
-        complete_paragraph = ''.join(matches).strip()
-
-        embedding = self.generate_embedding(complete_paragraph)
-
-        data = {
-            'agent_id': self.id,
-            'memory_details': complete_paragraph,
-            'embedding': embedding
-        }
-        
-        db_response = self.dao.insert_memory(data)
-        if db_response.data:
-            memory_event_data = {
-                'memory_id': db_response.data[0]['id'],
-                'event_id': event_id   
-            }
-            self.dao.insert_memory_event_assosciation(memory_event_data)
-        else:
-            # Handle the case where the memory wasn't inserted properly
-            logging.error("Failed to insert memory.")
+        pass

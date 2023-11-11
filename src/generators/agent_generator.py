@@ -26,8 +26,7 @@ class AgentGenerator(LLM, EntityGenerator):
                 'AG_GenAgentName', nationality=nationality, occupation=occupation
             )
             agent_handle = self.generate_agent_attribute(
-                'AG_GenAgentHandle', nationality=nationality, 
-                occupation=occupation, agent_name=agent_name
+                'AG_GenAgentHandle', traits=traits
             )
             agent_bio = self.generate_agent_attribute(
                 'AG_GenAgentBio', nationality=nationality, 
@@ -86,10 +85,16 @@ class AgentGenerator(LLM, EntityGenerator):
 
         logging.info(f'Prompt: {prompt}')
 
-        agent_attribute = self.chat(message, 1.25, 150)
+        if prompt_name == 'AG_GenAgentHandle':
+            temp = 1.5
+        else:
+            temp = 1.25
+
+        agent_attribute = self.chat(message, temp=temp, max_tokens=150)
         logging.info(f'Generated attribute: {agent_attribute}')
 
         if not agent_attribute:
             raise ValueError(f'Failed to generate agent attribute with prompt: {prompt}')
 
         return agent_attribute
+    
