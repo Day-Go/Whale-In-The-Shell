@@ -1,4 +1,6 @@
+import re
 import logging
+from decimal import Decimal
 
 from generators.entity_generator import EntityGenerator
 from llm import LLM
@@ -16,7 +18,9 @@ class AgentGenerator(LLM, EntityGenerator):
     def create(self):
         try:
             nationality = self.dao.get_random_nationality()
+            # nationality = self.dao.get_nationality_by_id(1)
             occupation = self.dao.get_random_occupation()
+            # occupation = self.dao.get_occupation_by_id(41)
             traits = self.dao.get_n_random_traits(5)
             investment_style = self.dao.get_random_investment_style()
             risk_tolerance = self.dao.get_random_risk_tolerance()
@@ -36,7 +40,13 @@ class AgentGenerator(LLM, EntityGenerator):
                 agent_name=agent_name, traits=traits
             )
 
-            response = self.dao.insert(
+            agent_balance = self.generate_agent_attribute(
+                'AG_GenAgentBalance', tok_limit=10, temp=1.3,
+                agent_name=agent_name, agent_bio=agent_bio
+            )
+            agent_balance = self.convert_currency_to_decimal(agent_balance)
+
+            agent = self.dao.insert(
                 'agents',
                 name=agent_name, handle=agent_handle, occupation=occupation,
                 nationality=nationality, biography=agent_bio, 
@@ -46,13 +56,16 @@ class AgentGenerator(LLM, EntityGenerator):
 
             for trait in traits:
                 self.dao.insert(
-                    'agentstraits',
-                    agent_id=response.data[0]['id'],
-                    trait_id=trait['id'],
-                    is_positive=trait['is_positive']
+                    'agentstraits', agent_id=agent.data[0]['id'],
+                    trait_id=trait['id'], is_positive=trait['is_positive']
                 )
 
-            return response.data[0]
+            self.dao.insert(
+                'wallet', agent_id=agent.data[0]['id'], 
+                currency_id=1, balance=agent_balance
+            )
+
+            return agent.data[0]
         
         except Exception as e:
             # Properly handle exceptions and log the error
@@ -96,3 +109,7 @@ class AgentGenerator(LLM, EntityGenerator):
 
         return agent_attribute
     
+    @staticmethod
+    def convert_currency_to_decimal(currency_str):
+        # Remove non-numeric characters except the decimal point
+        return re.sub(r'[^\d.]', '', currency_str)

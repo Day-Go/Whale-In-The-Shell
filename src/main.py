@@ -52,7 +52,7 @@ def embedding_similarity_test(query_embedding):
 if __name__ == '__main__':
     # org_generator_test()
     agent = agent_generator_test()
-    agent_test(agent)
+    # agent_test(agent)
     # embedding_similarity_test([None])
 
 
