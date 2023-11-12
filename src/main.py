@@ -4,6 +4,7 @@ import openai
 import logging
 import numpy as np
 from supabase import create_client, Client
+from openai import OpenAI
 
 from agent import Agent
 from game_master import GameMaster
@@ -17,22 +18,23 @@ supabase: Client = create_client(url, key)
 
 dao = DataAccessObject(supabase)
 api_key = os.getenv('OPENAI_API')
-openai.api_key = api_key
+
+gpt_client = OpenAI(api_key=api_key)
 
 def org_generator_test():
-    org_generator = OrgGenerator(api_key, dao)
-    agent_generator = AgentGenerator(api_key, dao)
-    gm = GameMaster(api_key, dao, org_generator, agent_generator)
+    org_generator = OrgGenerator(gpt_client, dao)
+    agent_generator = AgentGenerator(gpt_client, dao)
+    gm = GameMaster(gpt_client, dao, org_generator, agent_generator)
     gm.timestep()
 
 def agent_generator_test():
-    agent_generator = AgentGenerator(api_key, dao)
+    agent_generator = AgentGenerator(gpt_client, dao)
     agent = agent_generator.create()
     return agent
 
 def agent_test(agent):
     agent_id = agent['id']
-    agent = Agent(agent_id, api_key, dao)
+    agent = Agent(agent_id, gpt_client, dao)
     # opinion = agent.form_opinion('Cryptocurrencies and web3')
     # agent.update_goal(opinion)
     agent.observe(58)

@@ -1,6 +1,6 @@
 import re
 import logging
-from decimal import Decimal
+from openai import OpenAI
 
 from generators.entity_generator import EntityGenerator
 from llm import LLM
@@ -8,8 +8,8 @@ from data_access_object import DataAccessObject
 
 
 class AgentGenerator(LLM, EntityGenerator):
-    def __init__(self, api_key: str, dao: DataAccessObject):
-        LLM.__init__(self, api_key)
+    def __init__(self, gpt_client: OpenAI, dao: DataAccessObject):
+        LLM.__init__(self, gpt_client)
         EntityGenerator.__init__(self)
         self.dao = dao
 

@@ -2,14 +2,15 @@ import re
 import openai
 import logging
 from supabase import Client
+from openai import OpenAI
 
 from llm import LLM
 from data_access_object import DataAccessObject
 
 
 class Agent(LLM):
-    def __init__(self, agent_id: int, api_key: str, dao: DataAccessObject):
-        super().__init__(api_key)
+    def __init__(self, agent_id: int, gpt_client: OpenAI, dao: DataAccessObject):
+        super().__init__(gpt_client)
         self.id = agent_id
         self.dao = dao
         self.wallet = {}
@@ -35,7 +36,6 @@ class Agent(LLM):
 
         return formatted_string
 
-
     def get_system_prompt(self) -> None:
         prompt = self.dao.get_prompt_by_name('A_SystemPrompt')
         
@@ -46,8 +46,56 @@ class Agent(LLM):
             investment_style=self.investment_style, risk_tolerance=self.risk_tolerance,
             communication_style=self.communication_style)
         logging.info(f'System prompt: {system_prompt}')
-        
+
         return system_prompt
+
+    def get_buy_sell_functions(self):
+        functions = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "buy",
+                    "description": "Buy the given proassetuct",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "asset": {
+                                "type": "string",
+                                "description": "the asset to buy, e.g. BTC, ETH, etc.",
+                            },
+                            "allocation": {
+                                "type": "float",
+                                "description": "The percentage of your wallet to allocate to the asset",
+                            },
+                        },
+                        "required": ["asset", "allocation"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "sell",
+                    "description": "sell the given asset",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "asset": {
+                                "type": "string",
+                                "description": "the asset to sell, e.g. BTC, ETH, etc.",
+                            },
+                            "allocation": {
+                                "type": "float",
+                                "description": "The percentage of your asset holdings to sell",
+                            },
+                        },
+                        "required": ["asset", "allocation"]
+                    }
+                }
+            }
+        ]
+
+        return functions
 
     def timestep(self):
         pass
@@ -104,9 +152,29 @@ class Agent(LLM):
                 embedding=self.generate_embedding(fragment)
             )
 
-    def decide(self):
-        pass      
+        self.decide(product_opinion)
+    
+    def decide(self, opinion: str):
+        agent_traits_prompt = self.dao.get_prompt_by_name('A_AgentTraits')
+        agent_traits_prompt = agent_traits_prompt.format(
+            agent_name=self.name, agent_balance=self.format_wallet(),
+            investment_style=self.investment_style, risk_tolerance=self.risk_tolerance,
+            communication_style=self.communication_style
+        )
+
+        options = ', '.join(['buy', 'sell', 'hold'])
+        prompt = self.dao.get_prompt_by_name('A_Decide')
+        prompt = prompt.format(opinion=opinion, options=options)
+        logging.info(f'Prompt: {prompt}')
+
+        message = [{'role' :'system', 'content': agent_traits_prompt},
+                   {"role": "user", "content": prompt}]
         
+        response = self.function_call(message, functions=self.get_buy_sell_functions())
+        logging.info(response)
+
+
+
     def reflect(self):
         pass
 
@@ -116,3 +184,8 @@ class Agent(LLM):
     def insert_memory(self, response: str, event_id: int):
         pass
 
+    def buy(self, asset: str, allocation: float):
+        logging.info(f'Buying {allocation}% of {asset}...')
+
+    def sell(self, asset: str, allocation: float):
+        logging.info(f'Selling {allocation}% of {asset}...')
