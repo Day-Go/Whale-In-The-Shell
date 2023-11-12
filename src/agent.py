@@ -1,5 +1,4 @@
-import re
-import openai
+import json
 import logging
 from supabase import Client
 from openai import OpenAI
@@ -52,45 +51,61 @@ class Agent(LLM):
     def get_buy_sell_functions(self):
         functions = [
             {
-                "type": "function",
-                "function": {
-                    "name": "buy",
-                    "description": "Buy the given proassetuct",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "asset": {
-                                "type": "string",
-                                "description": "the asset to buy, e.g. BTC, ETH, etc.",
-                            },
-                            "allocation": {
-                                "type": "float",
-                                "description": "The percentage of your wallet to allocate to the asset",
-                            },
+                "name": "buy",
+                "description": "Buy the given product",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "asset": {
+                            "type": "string",
+                            "description": "the asset to buy, e.g. BTC, ETH, etc.",
                         },
-                        "required": ["asset", "allocation"]
-                    }
+                        "allocation": {
+                            "type": "string",
+                            "description": "The percentage of your wallet to allocate to the asset",
+                        },
+                        "reason": {
+                            "type": "string",
+                            "description": "Your reason for buying the asset",
+                        }
+                    },
+                    "required": ["asset", "allocation", "reason"]
                 }
             },
             {
-                "type": "function",
-                "function": {
-                    "name": "sell",
-                    "description": "sell the given asset",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "asset": {
-                                "type": "string",
-                                "description": "the asset to sell, e.g. BTC, ETH, etc.",
-                            },
-                            "allocation": {
-                                "type": "float",
-                                "description": "The percentage of your asset holdings to sell",
-                            },
+                "name": "abstain",
+                "description": "Do nothing",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "reason": {
+                            "type": "string",
+                            "description": "Your reason for obstaining",
+                        }
+                    },
+                    "required": ["asset"]
+                }
+            },
+            {
+                "name": "sell",
+                "description": "sell the given asset",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "asset": {
+                            "type": "string",
+                            "description": "the asset to sell, e.g. BTC, ETH, etc.",
                         },
-                        "required": ["asset", "allocation"]
-                    }
+                        "allocation": {
+                            "type": "string",
+                            "description": "The percentage of your asset holdings to sell",
+                        },
+                        "reason": {
+                            "type": "string",
+                            "description": "Your reason for selling the asset",
+                        }
+                    },
+                    "required": ["asset", "allocation", "reason"]
                 }
             }
         ]
@@ -162,17 +177,22 @@ class Agent(LLM):
             communication_style=self.communication_style
         )
 
-        options = ', '.join(['buy', 'sell', 'hold'])
+        options = ', '.join(['buy', 'sell', 'abstain'])
         prompt = self.dao.get_prompt_by_name('A_Decide')
-        prompt = prompt.format(opinion=opinion, options=options)
+        prompt = prompt.format(product_name=" NebulaLendonomy", opinion=opinion, options=options)
         logging.info(f'Prompt: {prompt}')
 
-        message = [{'role' :'system', 'content': agent_traits_prompt},
-                   {"role": "user", "content": prompt}]
+        entire_prompt = f'{agent_traits_prompt}\n{prompt}'
+
+        message = [{"role": "user", "content": entire_prompt}]
         
         response = self.function_call(message, functions=self.get_buy_sell_functions())
         logging.info(response)
 
+        function_name = response.name
+        function_args = json.loads(response.arguments)
+
+        eval(f'self.{function_name}(**function_args)')
 
 
     def reflect(self):

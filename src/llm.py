@@ -40,8 +40,10 @@ class LLM:
         completion = self.gpt_client.chat.completions.create(
             model="gpt-3.5-turbo-1106",
             messages=message,
-            tools=functions,
-            tool_choice="auto"
+            functions=functions,
+            function_call="auto"
         )
 
-        return completion
+        function_call = completion.choices[0].message.function_call
+
+        return function_call
