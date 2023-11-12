@@ -74,8 +74,15 @@ class Agent(LLM):
         product_opinion = self.chat(message, 1.25, 80)
         logging.info(f'Product opinion: {product_opinion}')
 
+        opinion_fragments = product_opinion.split('.')[:-1]
+        for fragment in opinion_fragments:
+            self.dao.insert(
+                'agentsopinions', agent_id=self.id, 
+                subject=product['type'], opinion=fragment,
+                embedding=self.generate_embedding(fragment)
+            )
+            
         
-
     def reflect(self):
         pass
 
@@ -84,3 +91,4 @@ class Agent(LLM):
 
     def insert_memory(self, response: str, event_id: int):
         pass
+
