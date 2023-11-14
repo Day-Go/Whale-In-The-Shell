@@ -66,17 +66,17 @@ class DataAccessObject:
 
     def get_crypto_product_by_id(self, id: int) -> str:
         response = self.sb_client.table('crypto_products') \
-                                 .select('name') \
+                                 .select('id, name') \
                                  .eq('id', id) \
                                  .execute()
-        return response.data[0]['name']
+        return response.data[0]
     
     def get_random_crypto_product(self) -> str:
-        response = self.sb_client.table("crypto_products") \
+        response = self.sb_client.table("id, crypto_products") \
                                  .select("id, name", count="exact") \
                                  .execute()
         
-        return random.choice(response.data)['name']
+        return random.choice(response.data)
     
     def get_prompt_by_name(self, prompt_name: str) -> str:
         try:

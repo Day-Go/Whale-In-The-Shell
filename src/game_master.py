@@ -53,8 +53,8 @@ class GameMaster(LLM):
     def process_event(self, event_type: Event) -> None:
         if event_type == Event.ANNOUNCEMENT:
             self.generate_announcement()
-            self.generate_update()
-            self.generate_development()
+            # self.generate_update()
+            # self.generate_development()
             
         else:
             self.generate_development()

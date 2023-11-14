@@ -51,7 +51,7 @@ class AgentGenerator(LLM, EntityGenerator):
                 name=agent_name, handle=agent_handle, occupation=occupation,
                 nationality=nationality, biography=agent_bio, 
                 investment_style=investment_style, risk_tolerance=risk_tolerance,
-                communication_style=communication_style
+                communication_style=communication_style, balance=agent_balance
             )
 
             for trait in traits:

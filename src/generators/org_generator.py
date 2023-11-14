@@ -1,4 +1,5 @@
 import logging
+import random
 from openai import OpenAI
 
 from generators.entity_generator import EntityGenerator
@@ -62,7 +63,10 @@ class OrgGenerator(LLM, EntityGenerator):
         return org_attribute
 
     def create_new_product(self, **kwargs) -> str:
-        product_type = self.dao.get_random_crypto_product()
+        product = self.dao.get_crypto_product_by_id(1)
+        product_id = product['id']
+        product_type = product['name']
+
         product_name = self.generate_product_name(
             org_type=kwargs.get('org_type'), 
             org_name=kwargs.get('org_name'), 
@@ -75,6 +79,10 @@ class OrgGenerator(LLM, EntityGenerator):
             name=product_name,
             type=product_type
         )
+
+        product_type_ids_with_assets = {1, 2, 3, 4, 5, 8, 10, 14, 16, 23}
+        if product_id in product_type_ids_with_assets:
+            self.generate_asset(product_name)
 
         return response.data[0]
 
@@ -98,3 +106,36 @@ class OrgGenerator(LLM, EntityGenerator):
 
         return product_name
         
+    def generate_asset(self, product_name: str):
+        prompt = self.dao.get_prompt_by_name('OG_GenAssetTicker').format(
+            product_name=product_name
+        )
+
+        message = [{"role": "user", "content": prompt}]
+        logging.info(f"Prompt: {prompt}")
+        ticker = self.chat(message, 1.25, 10)
+        logging.info(f"Generated ticker: {ticker}")
+
+        ticker = ticker.upper()
+        supply_multiplier = random.randint(1, 100_000)
+        circulating_supply = 1_000_000 * supply_multiplier
+
+        max_supply_multiplier = random.randint(1, 1_000_000)
+        max_supply_multiplier = max(max_supply_multiplier, supply_multiplier)
+        max_supply = 1_000_000 * max_supply_multiplier
+
+        vc_pre_allocation = random.randint(1, 1000)
+        market_cap = 10_000 * vc_pre_allocation
+
+        price = market_cap / circulating_supply
+        volume_24h = 0
+        change_24h = 0
+
+        response = self.dao.insert(
+            'assets',
+            ticker=ticker, name=product_name, circulating_supply=circulating_supply,
+            max_supply=max_supply, market_cap=market_cap, price=price,
+            volume_24h=volume_24h, change_24h=change_24h
+        )
+
+        return response.data[0]

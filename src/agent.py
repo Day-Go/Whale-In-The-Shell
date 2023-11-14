@@ -48,6 +48,12 @@ class Agent(LLM):
 
         return system_prompt
 
+    def buy(self, asset: str, allocation: float, reason: str):
+        pass
+
+    def sell(self, asset: str, allocation: float, reason: str):
+        pass
+
     def get_buy_sell_functions(self):
         functions = [
             {
