@@ -26,7 +26,7 @@ class DataAccessObject:
             return None
 
     def get_agent_by_id(self, agent_id: int):
-        columns = ('name, biography, occupation, handle, nationality, '
+        columns = ('name, biography, occupation, handle, nationality, balance, '
                    'investment_style, risk_tolerance, communication_style')
         response = self.sb_client.table('agents') \
                                  .select(columns) \
@@ -36,15 +36,15 @@ class DataAccessObject:
 
     def get_agent_wallet_by_id(self, agent_id: int) -> dict:
         response = self.sb_client.table('wallet') \
-                                 .select('balance, currency_id') \
+                                 .select('balance, asset_id') \
                                  .eq('agent_id', agent_id) \
                                  .execute()
         
         return response.data
 
-    def get_currency_by_id(self, currency_id: int) -> str:
-        response = self.sb_client.table('currencies') \
-                                 .select('name, code') \
+    def get_asset_by_id(self, currency_id: int) -> str:
+        response = self.sb_client.table('asset') \
+                                 .select('name, ticker') \
                                  .eq('id', currency_id) \
                                  .execute()
         

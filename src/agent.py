@@ -23,11 +23,12 @@ class Agent(LLM):
         self.__dict__.update(response)
         
     def get_agent_wallet(self) -> None:
+        self.wallet.update({'USD': self.balance})
         wallet = self.dao.get_agent_wallet_by_id(self.id)
 
         for asset in wallet:
-            currency_code = self.dao.get_currency_by_id(asset['currency_id'])['code']
-            self.wallet[currency_code] = asset['balance']
+            asset_ticker = self.dao.get_asset_by_id(asset['asset_id'])['ticker']
+            self.wallet[asset_ticker] = asset['balance']
 
     def format_wallet(self):
         formatted_entries = [f"{balance} {currency}" for currency, balance in self.wallet.items()]
@@ -49,10 +50,15 @@ class Agent(LLM):
         return system_prompt
 
     def buy(self, asset: str, allocation: float, reason: str):
-        pass
+        logging.info(f'Buying {allocation}% of {asset}...')
+        logging.info(f'Reason: {reason}')
 
     def sell(self, asset: str, allocation: float, reason: str):
-        pass
+        logging.info(f'Selling {allocation}% of {asset}...')
+        logging.info(f'Reason: {reason}')
+
+    def abstain(self, reason: str):
+        logging.info(f'Abstaining... {reason}')
 
     def get_buy_sell_functions(self):
         functions = [
@@ -173,9 +179,9 @@ class Agent(LLM):
                 embedding=self.generate_embedding(fragment)
             )
 
-        self.decide(product_opinion)
+        self.decide(product['name'], product_opinion)
     
-    def decide(self, opinion: str):
+    def decide(self, product_name: str, opinion: str):
         agent_traits_prompt = self.dao.get_prompt_by_name('A_AgentTraits')
         agent_traits_prompt = agent_traits_prompt.format(
             agent_name=self.name, agent_balance=self.format_wallet(),
@@ -185,7 +191,7 @@ class Agent(LLM):
 
         options = ', '.join(['buy', 'sell', 'abstain'])
         prompt = self.dao.get_prompt_by_name('A_Decide')
-        prompt = prompt.format(product_name=" NebulaLendonomy", opinion=opinion, options=options)
+        prompt = prompt.format(product_name=product_name, opinion=opinion, options=options)
         logging.info(f'Prompt: {prompt}')
 
         entire_prompt = f'{agent_traits_prompt}\n{prompt}'

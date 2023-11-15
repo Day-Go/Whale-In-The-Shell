@@ -1,5 +1,6 @@
 import logging
 import random
+import numpy as np
 from openai import OpenAI
 
 from generators.entity_generator import EntityGenerator
@@ -117,25 +118,35 @@ class OrgGenerator(LLM, EntityGenerator):
         logging.info(f"Generated ticker: {ticker}")
 
         ticker = ticker.upper()
-        supply_multiplier = random.randint(1, 100_000)
-        circulating_supply = 1_000_000 * supply_multiplier
-
-        max_supply_multiplier = random.randint(1, 1_000_000)
-        max_supply_multiplier = max(max_supply_multiplier, supply_multiplier)
-        max_supply = 1_000_000 * max_supply_multiplier
+        
+        cir_supply = self.generate_nice_number(30_000, 1_000_000_000_000_000)
+        circ_to_max_ratio = random.randint(1, 100)
+        max_supply = self.generate_nice_number(cir_supply, cir_supply * circ_to_max_ratio)
 
         vc_pre_allocation = random.randint(1, 1000)
         market_cap = 10_000 * vc_pre_allocation
 
-        price = market_cap / circulating_supply
+        price = market_cap / cir_supply
         volume_24h = 0
         change_24h = 0
 
         response = self.dao.insert(
             'assets',
-            ticker=ticker, name=product_name, circulating_supply=circulating_supply,
+            ticker=ticker, name=product_name, circulating_supply=cir_supply,
             max_supply=max_supply, market_cap=market_cap, price=price,
             volume_24h=volume_24h, change_24h=change_24h
         )
 
         return response.data[0]
+    
+    @staticmethod
+    def generate_nice_number(min_val, max_val):
+        # Generate a random number in the logarithmic scale
+        log_min = np.log10(min_val)
+        log_max = np.log10(max_val)
+        random_log_val = np.random.uniform(log_min, log_max)
+
+        # Convert back to linear scale and round to nearest power of 10
+        nice_number = round(10**random_log_val, -int(np.floor(random_log_val)))
+
+        return nice_number
