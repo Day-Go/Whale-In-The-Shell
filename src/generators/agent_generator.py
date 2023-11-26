@@ -72,8 +72,6 @@ class AgentGenerator(LLM, EntityGenerator):
             logging.error(f'Failed to create new agent: {e}')
             raise
 
-        pass
-
     def update(self, agent):
         # Logic to update an agent
         pass

@@ -14,21 +14,31 @@ class Agent(LLM):
         self.dao = dao
         self.wallet = {}
 
-        self.get_agent_information()
-        self.get_agent_wallet()
+        self.load_agent_parameters()
+        self.load_agent_wallet()
         self.system_prompt = self.get_system_prompt()
 
-    def get_agent_information(self) -> None:
+    def load_agent_parameters(self) -> None:
         response = self.dao.get_agent_by_id(self.id)
         self.__dict__.update(response)
         
-    def get_agent_wallet(self) -> None:
+    def load_agent_wallet(self) -> None:
         self.wallet.update({'USD': self.balance})
         wallet = self.dao.get_agent_wallet_by_id(self.id)
 
         for asset in wallet:
             asset_ticker = self.dao.get_asset_by_id(asset['asset_id'])['ticker']
             self.wallet[asset_ticker] = asset['balance']
+
+    def get_agent_traits_prompt(self) -> None:
+        agent_traits_prompt = self.dao.get_prompt_by_name('A_AgentTraits')
+        agent_traits_prompt = agent_traits_prompt.format(
+            agent_name=self.name, agent_balance=self.format_wallet(),
+            investment_style=self.investment_style, risk_tolerance=self.risk_tolerance,
+            communication_style=self.communication_style
+        )
+
+        return agent_traits_prompt
 
     def format_wallet(self):
         formatted_entries = [f"{balance} {currency}" for currency, balance in self.wallet.items()]
@@ -127,7 +137,7 @@ class Agent(LLM):
     def timestep(self):
         pass
 
-    def form_opinion(self, subject):
+    def form_opinion(self, subject: str):
         prompt = self.dao.get_prompt_by_name('A_SubjectOpinion')
         prompt = prompt.format(subject=subject)
 
@@ -180,14 +190,11 @@ class Agent(LLM):
             )
 
         self.decide(product['name'], product_opinion)
-    
+
+    # product name should be replaced with something more generic.
+    # In the future agents may decide on more than just products.
     def decide(self, product_name: str, opinion: str):
-        agent_traits_prompt = self.dao.get_prompt_by_name('A_AgentTraits')
-        agent_traits_prompt = agent_traits_prompt.format(
-            agent_name=self.name, agent_balance=self.format_wallet(),
-            investment_style=self.investment_style, risk_tolerance=self.risk_tolerance,
-            communication_style=self.communication_style
-        )
+        agent_traits_prompt = self.get_agent_traits_prompt()
 
         options = ', '.join(['buy', 'sell', 'abstain'])
         prompt = self.dao.get_prompt_by_name('A_Decide')
@@ -215,9 +222,3 @@ class Agent(LLM):
 
     def insert_memory(self, response: str, event_id: int):
         pass
-
-    def buy(self, asset: str, allocation: float):
-        logging.info(f'Buying {allocation}% of {asset}...')
-
-    def sell(self, asset: str, allocation: float):
-        logging.info(f'Selling {allocation}% of {asset}...')

@@ -7,6 +7,7 @@ from llm import LLM
 from data_access_object import DataAccessObject
 from models.enums import Event, SENTIMENT
 from generators import OrgGenerator, AgentGenerator
+from observer import ObserverManager
 
 logging.basicConfig(level=logging.INFO)
 
@@ -14,36 +15,49 @@ ANNOUNCEMENT_PROBABILITY_START = 100
 ANNOUNCEMENT_PROBABILITY_END = 5
 MAX_STEP_COUNT = 1000
 
+
 class GameMaster(LLM):
     def __init__(
             self, 
             api_key: str, 
             dao: DataAccessObject, 
             org_generator: OrgGenerator, 
-            agent_generator: AgentGenerator
+            agent_generator: AgentGenerator,
+            observer_manager: ObserverManager
         ):
         super().__init__(api_key)
         self.dao = dao
         self.org_generator = org_generator
         self.agent_generator = agent_generator
+        self.observer_manager = observer_manager
         self.step_count = 0
 
         self.system_prompt =  self.dao.get_prompt_by_name('GM_SystemPrompt')
 
     def get_event_type(self) -> Event:
         probability = self.calculate_announcement_probability(self.step_count)
-        return Event.ANNOUNCEMENT if random.random() * 100 < probability else Event.DEVELOPMENT
+        random_value = random.random() * 100
+
+        if random_value < probability:
+            return Event.ANNOUNCEMENT
+        else:
+            if random.random() < 0.5:
+                return Event.DEVELOPMENT
+            else:
+                return Event.UPDATE
 
     def get_event_sentiment(self) -> SENTIMENT:
         return SENTIMENT.NEGATIVE
 
     @staticmethod
     def calculate_announcement_probability(step_count: int) -> float:
-        # Refactored calculation into a static method
-        return max(
-            ANNOUNCEMENT_PROBABILITY_END,
-            ANNOUNCEMENT_PROBABILITY_START - ((ANNOUNCEMENT_PROBABILITY_START - ANNOUNCEMENT_PROBABILITY_END) * step_count / MAX_STEP_COUNT)
-        )
+        interpolation_factor = step_count / MAX_STEP_COUNT 
+        probability_difference = (ANNOUNCEMENT_PROBABILITY_START - 
+                                  ANNOUNCEMENT_PROBABILITY_END) 
+        interpolated_probability = (ANNOUNCEMENT_PROBABILITY_START - 
+                                    (probability_difference * interpolation_factor)) 
+
+        return max(ANNOUNCEMENT_PROBABILITY_END, interpolated_probability)
     
     def timestep(self) -> None:
         event_type = self.get_event_type()
@@ -51,13 +65,13 @@ class GameMaster(LLM):
         self.step_count += 1
 
     def process_event(self, event_type: Event) -> None:
-        if event_type == Event.ANNOUNCEMENT:
-            self.generate_announcement()
-            # self.generate_update()
-            # self.generate_development()
-            
-        else:
-            self.generate_development()
+        match event_type:
+            case Event.ANNOUNCEMENT:
+                self.generate_announcement()
+            case Event.DEVELOPMENT:
+                self.generate_development()
+            case Event.UPDATE:
+                self.generate_update()
 
     def generate_announcement(self):
         new_org = self.org_generator.create()

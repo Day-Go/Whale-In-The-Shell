@@ -1,8 +1,7 @@
 import os
-import ast
-import openai
+import random
+import datetime
 import logging
-import numpy as np
 from supabase import create_client, Client
 from openai import OpenAI
 
@@ -10,6 +9,21 @@ from agent import Agent
 from game_master import GameMaster
 from generators import OrgGenerator, AgentGenerator
 from data_access_object import DataAccessObject
+from observer import ObserverManager
+
+# Create 'logs' directory if it doesn't exist
+log_dir = "logs"
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)
+
+# Get the current date and time for the filename
+current_time = datetime.datetime.now()
+filename = os.path.join(log_dir, current_time.strftime("log_%Y%m%d_%H%M%S.txt"))
+
+# Configure logging
+logging.basicConfig(filename=filename, level=logging.DEBUG, 
+                    format='%(asctime)s %(levelname)s:%(message)s', 
+                    filemode='w')
 
 url: str = os.getenv('SUPABASE_URL')
 key: str = os.getenv('SUPABASE_SERVICE_KEY')
@@ -20,41 +34,30 @@ dao = DataAccessObject(supabase)
 api_key = os.getenv('OPENAI_API')
 
 gpt_client = OpenAI(api_key=api_key)
-
-def org_generator_test():
-    org_generator = OrgGenerator(gpt_client, dao)
-    agent_generator = AgentGenerator(gpt_client, dao)
-    gm = GameMaster(gpt_client, dao, org_generator, agent_generator)
-    gm.timestep()
-
-def agent_generator_test():
-    agent_generator = AgentGenerator(gpt_client, dao)
-    agent = agent_generator.create()
-    return agent
-
-def agent_test(agent):
-    agent_id = agent['id']
-    agent = Agent(agent_id, gpt_client, dao)
-    # opinion = agent.form_opinion('Cryptocurrencies and web3')
-    # agent.update_goal(opinion)
-    agent.observe(68)
-
-def embedding_similarity_test(query_embedding):
-    response = supabase.table('memories').select('id, embedding').execute()
-    # print(response.data[1])
-
-    for row in response.data[:-1]:
-        memory_id = row['id']
-        embedding = ast.literal_eval(row['embedding'])
-        similarity = np.dot(np.array(query_embedding), np.array(embedding))
-
-        print(similarity)
+observer_manager = ObserverManager()
 
 
 if __name__ == '__main__':
-    # org_generator_test()
-    agent = agent_generator_test()
-    agent_test(agent)
-    # embedding_similarity_test([None])
+    gm = GameMaster(
+        api_key, 
+        dao, 
+        OrgGenerator(gpt_client, dao), 
+        AgentGenerator(gpt_client, dao),
+        observer_manager
+    )
+
+    ag = AgentGenerator(gpt_client, dao)
+    org = OrgGenerator(gpt_client, dao)
+
+    while True:
+        while random.random() < 0.5:
+            ag.create()
+
+        while random.random() < 0.25:
+            org.create()
+
+        gm.timestep()
+        input('Press enter to continue...')
+
 
 
