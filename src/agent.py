@@ -5,10 +5,15 @@ from openai import OpenAI
 
 from llm import LLM
 from data_access_object import DataAccessObject
-
+from observer import ObserverManager
 
 class Agent(LLM):
-    def __init__(self, agent_id: int, gpt_client: OpenAI, dao: DataAccessObject):
+    def __init__(
+            self, 
+            agent_id: int, 
+            gpt_client: OpenAI, 
+            dao: DataAccessObject, 
+            observer_manager: ObserverManager) -> None:
         super().__init__(gpt_client)
         self.id = agent_id
         self.dao = dao
@@ -17,6 +22,7 @@ class Agent(LLM):
         self.load_agent_parameters()
         self.load_agent_wallet()
         self.system_prompt = self.get_system_prompt()
+        observer_manager.attach(self)
 
     def load_agent_parameters(self) -> None:
         response = self.dao.get_agent_by_id(self.id)
@@ -134,8 +140,8 @@ class Agent(LLM):
 
         return functions
 
-    def timestep(self):
-        pass
+    def update(self, event):
+        print(f'Agent {self.id} Updating...\n\n {event}')
 
     def form_opinion(self, subject: str):
         prompt = self.dao.get_prompt_by_name('A_SubjectOpinion')

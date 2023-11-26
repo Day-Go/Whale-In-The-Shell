@@ -2,6 +2,7 @@ import random
 import openai
 import logging
 from supabase import Client
+from openai import OpenAI
 
 from llm import LLM
 from data_access_object import DataAccessObject
@@ -19,13 +20,12 @@ MAX_STEP_COUNT = 1000
 class GameMaster(LLM):
     def __init__(
             self, 
-            api_key: str, 
+            gpt_client: OpenAI, 
             dao: DataAccessObject, 
             org_generator: OrgGenerator, 
             agent_generator: AgentGenerator,
-            observer_manager: ObserverManager
-        ):
-        super().__init__(api_key)
+            observer_manager: ObserverManager) -> None:
+        super().__init__(gpt_client)
         self.dao = dao
         self.org_generator = org_generator
         self.agent_generator = agent_generator
@@ -61,17 +61,22 @@ class GameMaster(LLM):
     
     def timestep(self) -> None:
         event_type = self.get_event_type()
-        self.process_event(event_type)
+        event = self.generate_event(event_type)
+        self.observer_manager.notify(event)
         self.step_count += 1
 
-    def process_event(self, event_type: Event) -> None:
+    def generate_event(self, event_type: Event) -> str:
         match event_type:
             case Event.ANNOUNCEMENT:
-                self.generate_announcement()
+                event = self.generate_announcement()
             case Event.DEVELOPMENT:
-                self.generate_development()
+                event = self.generate_development()
             case Event.UPDATE:
-                self.generate_update()
+                event = self.generate_update()
+            case _:
+                raise ValueError(f"Invalid event type: {event_type}")
+
+        return event
 
     def generate_announcement(self):
         new_org = self.org_generator.create()
@@ -122,7 +127,14 @@ class GameMaster(LLM):
             product,
         )
         
-        self.prompt_and_save(message, Event.UPDATE, organisation, product)
+        event = self.prompt_and_save(
+            message, 
+            Event.UPDATE, 
+            organisation, 
+            product
+        )
+
+        return event
 
     def build_announcement_message(self, new_org: dict, new_product: dict):
         prompt = self.dao.get_prompt_by_name('GM_Announcement')
@@ -163,7 +175,12 @@ class GameMaster(LLM):
         return [{"role": "system", "content": self.system_prompt}, 
                 {"role": "user", "content": prompt}]
 
-    def prompt_and_save(self, message: str, event_type: Event, organisation: dict, product: dict):
+    def prompt_and_save(
+            self, 
+            message: str, 
+            event_type: Event, 
+            organisation: dict, 
+            product: dict) -> str:
         event = self.chat(message, temp=1.25, max_tokens=80)
         event_embedding = self.generate_embedding(event)
         logging.info(f"Generated announcement: {event}")
@@ -186,4 +203,6 @@ class GameMaster(LLM):
             event_id=event_row.data[0]['id'],
             product_id=product['id']
         )
+
+        return event
 

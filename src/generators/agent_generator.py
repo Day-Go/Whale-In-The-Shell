@@ -60,12 +60,7 @@ class AgentGenerator(LLM, EntityGenerator):
                     trait_id=trait['id'], is_positive=trait['is_positive']
                 )
 
-            self.dao.insert(
-                'wallet', agent_id=agent.data[0]['id'], 
-                currency_id=1, balance=agent_balance
-            )
-
-            return agent.data[0]
+            return agent.data[0]['id']
         
         except Exception as e:
             # Properly handle exceptions and log the error

@@ -6,10 +6,15 @@ from openai import OpenAI
 from generators.entity_generator import EntityGenerator
 from llm import LLM
 from data_access_object import DataAccessObject
-
+from observer import ObserverManager
 
 class OrgGenerator(LLM, EntityGenerator):
-    def __init__(self, gpt_client: OpenAI, dao: DataAccessObject):
+    def __init__(
+            self, 
+            gpt_client: 
+            OpenAI, dao: 
+            DataAccessObject
+            ) -> None:
         LLM.__init__(self, gpt_client)
         EntityGenerator.__init__(self)
         self.dao = dao

@@ -39,7 +39,7 @@ observer_manager = ObserverManager()
 
 if __name__ == '__main__':
     gm = GameMaster(
-        api_key, 
+        gpt_client, 
         dao, 
         OrgGenerator(gpt_client, dao), 
         AgentGenerator(gpt_client, dao),
@@ -50,11 +50,13 @@ if __name__ == '__main__':
     org = OrgGenerator(gpt_client, dao)
 
     while True:
-        while random.random() < 0.5:
-            ag.create()
-
         while random.random() < 0.25:
             org.create()
+
+        while random.random() < 0.5:
+            agent_id = ag.create()
+            agent = Agent(agent_id, gpt_client, dao, observer_manager)
+            break
 
         gm.timestep()
         input('Press enter to continue...')
