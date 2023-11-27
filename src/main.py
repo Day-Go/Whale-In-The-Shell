@@ -3,7 +3,7 @@ import random
 import datetime
 import logging
 from supabase import create_client, Client
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 
 from agent import Agent
 from game_master import GameMaster
@@ -34,6 +34,7 @@ dao = DataAccessObject(supabase)
 api_key = os.getenv('OPENAI_API')
 
 gpt_client = OpenAI(api_key=api_key)
+async_gpt_client = AsyncOpenAI(api_key=api_key)
 observer_manager = ObserverManager()
 
 
@@ -50,8 +51,8 @@ if __name__ == '__main__':
     org = OrgGenerator(gpt_client, dao)
 
     while True:
-        while random.random() < 0.25:
-            org.create()
+        # while random.random() < 0.25:
+        #     org.create()
 
         while random.random() < 0.5:
             agent_id = ag.create()

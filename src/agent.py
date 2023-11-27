@@ -1,7 +1,7 @@
 import json
 import logging
-from supabase import Client
-from openai import OpenAI
+import asyncio
+from openai import OpenAI, AsyncOpenAI
 
 from llm import LLM
 from data_access_object import DataAccessObject
@@ -11,10 +11,11 @@ class Agent(LLM):
     def __init__(
             self, 
             agent_id: int, 
-            gpt_client: OpenAI, 
+            gpt_client: OpenAI,
+            async_gpt_client: AsyncOpenAI,
             dao: DataAccessObject, 
             observer_manager: ObserverManager) -> None:
-        super().__init__(gpt_client)
+        super().__init__(gpt_client, async_gpt_client)
         self.id = agent_id
         self.dao = dao
         self.wallet = {}
@@ -140,33 +141,9 @@ class Agent(LLM):
 
         return functions
 
-    def update(self, event):
+    async def update(self, event):
+        # Decide whether to observe the event
         print(f'Agent {self.id} Updating...\n\n {event}')
-
-    def form_opinion(self, subject: str):
-        prompt = self.dao.get_prompt_by_name('A_SubjectOpinion')
-        prompt = prompt.format(subject=subject)
-
-        message = [{'role' :'system', 'content': self.system_prompt},
-                     {"role": "user", "content": prompt}]
-        
-        opinion = self.chat(message, 1.25, 80)
-        logging.info(f'Opinion: {opinion}')
-
-        return opinion
-
-    def update_goal(self, opinion: str):
-        prompt = self.dao.get_prompt_by_name('A_UpdateGoal')
-        prompt = prompt.format(opinion=opinion)
-        logging.info(f'Prompt: {prompt}')
-
-        message = [{'role' :'system', 'content': self.system_prompt},
-                   {"role": "user", "content": prompt}]
-
-        goal = self.chat(message, 1.25, 150)
-        logging.info(f'Goal: {goal}')
-
-        self.dao.update('agents', self.id, goals=goal)
 
     def observe(self, event_id: int):
         event = self.dao.get_event_by_id(event_id)
@@ -196,6 +173,31 @@ class Agent(LLM):
             )
 
         self.decide(product['name'], product_opinion)
+
+    def form_opinion(self, subject: str):
+        prompt = self.dao.get_prompt_by_name('A_SubjectOpinion')
+        prompt = prompt.format(subject=subject)
+
+        message = [{'role' :'system', 'content': self.system_prompt},
+                     {"role": "user", "content": prompt}]
+        
+        opinion = self.chat(message, 1.25, 80)
+        logging.info(f'Opinion: {opinion}')
+
+        return opinion
+
+    def update_goal(self, opinion: str):
+        prompt = self.dao.get_prompt_by_name('A_UpdateGoal')
+        prompt = prompt.format(opinion=opinion)
+        logging.info(f'Prompt: {prompt}')
+
+        message = [{'role' :'system', 'content': self.system_prompt},
+                   {"role": "user", "content": prompt}]
+
+        goal = self.chat(message, 1.25, 150)
+        logging.info(f'Goal: {goal}')
+
+        self.dao.update('agents', self.id, goals=goal)
 
     # product name should be replaced with something more generic.
     # In the future agents may decide on more than just products.

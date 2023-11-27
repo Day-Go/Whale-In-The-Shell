@@ -1,3 +1,5 @@
+import asyncio
+
 class ObserverManager:
     def __init__(self):
         self._observers = []
@@ -8,6 +10,6 @@ class ObserverManager:
     def detach(self, observer):
         self._observers.remove(observer)
 
-    def notify(self, subject):
-        for observer in self._observers:
-            observer.update(subject)
+    async def notify(self, subject):
+        await asyncio.gather(*(observer.update(subject) 
+                               for observer in self._observers))
