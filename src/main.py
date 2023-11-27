@@ -1,4 +1,5 @@
 import os
+import asyncio
 import random
 import datetime
 import logging
@@ -37,30 +38,33 @@ gpt_client = OpenAI(api_key=api_key)
 async_gpt_client = AsyncOpenAI(api_key=api_key)
 observer_manager = ObserverManager()
 
+def load_agents():
+    agent_ids = [120, 105, 151]
 
-if __name__ == '__main__':
-    gm = GameMaster(
-        gpt_client, 
-        dao, 
-        OrgGenerator(gpt_client, dao), 
-        AgentGenerator(gpt_client, dao),
-        observer_manager
-    )
+    for agent_id in agent_ids:
+        Agent(agent_id, gpt_client, async_gpt_client, dao, observer_manager)
 
-    ag = AgentGenerator(gpt_client, dao)
-    org = OrgGenerator(gpt_client, dao)
-
+async def game_loop():
     while True:
         # while random.random() < 0.25:
         #     org.create()
 
-        while random.random() < 0.5:
-            agent_id = ag.create()
-            agent = Agent(agent_id, gpt_client, dao, observer_manager)
-            break
+        # while random.random() < 0.5:
+        #     agent_id = ag.create()
+        #     agent = Agent(agent_id, gpt_client, async_gpt_client, dao, observer_manager)
+        #     break
 
-        gm.timestep()
+        await gm.timestep()
         input('Press enter to continue...')
+
+
+if __name__ == '__main__':
+    ag = AgentGenerator(gpt_client, async_gpt_client, dao)
+    og = OrgGenerator(gpt_client, async_gpt_client, dao)
+    gm = GameMaster(gpt_client, async_gpt_client, dao, og, ag, observer_manager)
+
+    load_agents()
+    asyncio.run(game_loop())
 
 
 

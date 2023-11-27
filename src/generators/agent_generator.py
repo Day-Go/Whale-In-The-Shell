@@ -1,6 +1,6 @@
 import re
 import logging
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 
 from generators.entity_generator import EntityGenerator
 from llm import LLM
@@ -8,8 +8,12 @@ from data_access_object import DataAccessObject
 
 
 class AgentGenerator(LLM, EntityGenerator):
-    def __init__(self, gpt_client: OpenAI, dao: DataAccessObject):
-        LLM.__init__(self, gpt_client)
+    def __init__(
+            self, 
+            gpt_client: OpenAI, 
+            async_gpt_client: AsyncOpenAI, 
+            dao: DataAccessObject) -> None:
+        LLM.__init__(self, gpt_client, async_gpt_client)
         EntityGenerator.__init__(self)
         self.dao = dao
 

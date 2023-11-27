@@ -1,7 +1,7 @@
 import logging
 import random
 import numpy as np
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 
 from generators.entity_generator import EntityGenerator
 from llm import LLM
@@ -11,11 +11,11 @@ from observer import ObserverManager
 class OrgGenerator(LLM, EntityGenerator):
     def __init__(
             self, 
-            gpt_client: 
-            OpenAI, dao: 
-            DataAccessObject
+            gpt_client: OpenAI,
+            async_gpt_client: AsyncOpenAI, 
+            dao: DataAccessObject
             ) -> None:
-        LLM.__init__(self, gpt_client)
+        LLM.__init__(self, gpt_client, async_gpt_client)
         EntityGenerator.__init__(self)
         self.dao = dao
 

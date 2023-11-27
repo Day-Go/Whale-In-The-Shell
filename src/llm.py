@@ -21,7 +21,7 @@ class LLM:
         return embedding
 
     async def generate_embedding_async(self, message):
-        response_embedding = self.async_gpt_client.embeddings.create(
+        response_embedding = await self.async_gpt_client.embeddings.create(
             input=message,
             model='text-embedding-ada-002'
         )
@@ -43,8 +43,8 @@ class LLM:
             
         return reply_content
     
-    def chat_async(self, message: str, temp: float, max_tokens: int) -> str:
-        completion = self.async_gpt_client.chat.completions.create(
+    async def chat_async(self, message: str, temp: float, max_tokens: int) -> str:
+        completion = await self.async_gpt_client.chat.completions.create(
             model="gpt-3.5-turbo-1106",
             messages=message,
             temperature=temp,
@@ -70,8 +70,8 @@ class LLM:
 
         return function_call
     
-    def function_call_async(self, message: str, functions: list):
-        completion = self.async_gpt_client.chat.completions.create(
+    async def function_call_async(self, message: str, functions: list):
+        completion = await self.async_gpt_client.chat.completions.create(
             model="gpt-3.5-turbo-1106",
             messages=message,
             functions=functions,
@@ -79,5 +79,7 @@ class LLM:
         )
 
         function_call = completion.choices[0].message.function_call
+        if function_call == None:
+            return FunctionCall
 
         return function_call

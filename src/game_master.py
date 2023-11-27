@@ -1,8 +1,6 @@
 import random
-import openai
 import logging
-from supabase import Client
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 
 from llm import LLM
 from data_access_object import DataAccessObject
@@ -20,12 +18,13 @@ MAX_STEP_COUNT = 1000
 class GameMaster(LLM):
     def __init__(
             self, 
-            gpt_client: OpenAI, 
+            gpt_client: OpenAI,
+            async_gpt_client: AsyncOpenAI, 
             dao: DataAccessObject, 
             org_generator: OrgGenerator, 
             agent_generator: AgentGenerator,
             observer_manager: ObserverManager) -> None:
-        super().__init__(gpt_client)
+        super().__init__(gpt_client, async_gpt_client)
         self.dao = dao
         self.org_generator = org_generator
         self.agent_generator = agent_generator
@@ -59,10 +58,10 @@ class GameMaster(LLM):
 
         return max(ANNOUNCEMENT_PROBABILITY_END, interpolated_probability)
     
-    def timestep(self) -> None:
+    async def timestep(self) -> None:
         event_type = self.get_event_type()
         event = self.generate_event(event_type)
-        self.observer_manager.notify(event)
+        await self.observer_manager.notify(event)
         self.step_count += 1
 
     def generate_event(self, event_type: Event) -> str:
@@ -91,7 +90,14 @@ class GameMaster(LLM):
 
         message = self.build_announcement_message(new_org, new_product)
 
-        self.prompt_and_save(message, Event.ANNOUNCEMENT, new_org, new_product)
+        event = self.prompt_and_save(
+            message, 
+            Event.ANNOUNCEMENT, 
+            new_org, 
+            new_product
+        )
+
+        return event
 
     def generate_development(self):
         # 1. Get random event from database
@@ -113,7 +119,14 @@ class GameMaster(LLM):
             sentiment.name
         )
 
-        self.prompt_and_save(message, Event.DEVELOPMENT, organisation, product)
+        event = self.prompt_and_save(
+            message, 
+            Event.DEVELOPMENT, 
+            organisation, 
+            product
+        )
+
+        return event
 
     def generate_update(self):
         event = self.dao.get_random_recent_event_by_type(Event.ANNOUNCEMENT.value, 12)
@@ -204,5 +217,5 @@ class GameMaster(LLM):
             product_id=product['id']
         )
 
-        return event
+        return event_row.data[0]
 

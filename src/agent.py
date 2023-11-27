@@ -1,4 +1,5 @@
 import json
+import random
 import logging
 import asyncio
 from openai import OpenAI, AsyncOpenAI
@@ -55,13 +56,13 @@ class Agent(LLM):
 
     def get_system_prompt(self) -> None:
         prompt = self.dao.get_prompt_by_name('A_SystemPrompt')
-        
         agent_balance = self.format_wallet()
 
         system_prompt = prompt.format(
             agent_name=self.name, agent_bio=self.biography, agent_balance=agent_balance,
             investment_style=self.investment_style, risk_tolerance=self.risk_tolerance,
-            communication_style=self.communication_style)
+            communication_style=self.communication_style
+        )
         logging.info(f'System prompt: {system_prompt}')
 
         return system_prompt
@@ -142,14 +143,17 @@ class Agent(LLM):
         return functions
 
     async def update(self, event):
+        print(f'Agent {self.id} Updating...\n\n')
         # Decide whether to observe the event
-        print(f'Agent {self.id} Updating...\n\n {event}')
+        # For now use a simple probability
+        if random.random() < 0.95:
+            await self.observe(event['id'])
 
-    def observe(self, event_id: int):
+    async def observe(self, event_id: int):
         event = self.dao.get_event_by_id(event_id)
         product = self.dao.get_product_by_event_id(event_id)
 
-        subject_opinion = self.form_opinion(product['type'])
+        subject_opinion = await self.form_opinion(product['type'])
         logging.info(f'Subject opinion: {subject_opinion}')
 
         prompt = self.dao.get_prompt_by_name('A_EventOpinion')
@@ -161,7 +165,7 @@ class Agent(LLM):
         message = [{'role' :'system', 'content': self.system_prompt},
                    {"role": "user", "content": prompt}]
         
-        product_opinion = self.chat(message, 1.25, 80)
+        product_opinion = await self.chat_async(message, 1.25, 80)
         logging.info(f'Product opinion: {product_opinion}')
 
         opinion_fragments = product_opinion.split('.')[:-1]
@@ -172,19 +176,45 @@ class Agent(LLM):
                 embedding=self.generate_embedding(fragment)
             )
 
-        self.decide(product['name'], product_opinion)
+        await self.decide(product['name'], product_opinion)
 
-    def form_opinion(self, subject: str):
+    async def form_opinion(self, subject: str):
         prompt = self.dao.get_prompt_by_name('A_SubjectOpinion')
         prompt = prompt.format(subject=subject)
 
         message = [{'role' :'system', 'content': self.system_prompt},
                      {"role": "user", "content": prompt}]
         
-        opinion = self.chat(message, 1.25, 80)
+        opinion = await self.chat_async(message, 1.25, 80)
         logging.info(f'Opinion: {opinion}')
 
         return opinion
+
+    # product name should be replaced with something more generic.
+    # In the future agents may decide on more than just products.
+    async def decide(self, product_name: str, opinion: str):
+        agent_traits_prompt = self.get_agent_traits_prompt()
+
+        options = ', '.join(['buy', 'sell', 'abstain'])
+        prompt = self.dao.get_prompt_by_name('A_Decide')
+        prompt = prompt.format(product_name=product_name, opinion=opinion, options=options)
+        logging.info(f'Prompt: {prompt}')
+
+        entire_prompt = f'{agent_traits_prompt}\n{prompt}'
+
+        message = [{"role": "user", "content": entire_prompt}]
+        
+        response = await self.function_call_async(
+            message, 
+            functions=self.get_buy_sell_functions()
+        )
+        logging.info(response)
+
+        function_name = response.name
+        function_args = json.loads(response.arguments)
+
+        eval(f'self.{function_name}(**function_args)')
+
 
     def update_goal(self, opinion: str):
         prompt = self.dao.get_prompt_by_name('A_UpdateGoal')
@@ -198,29 +228,6 @@ class Agent(LLM):
         logging.info(f'Goal: {goal}')
 
         self.dao.update('agents', self.id, goals=goal)
-
-    # product name should be replaced with something more generic.
-    # In the future agents may decide on more than just products.
-    def decide(self, product_name: str, opinion: str):
-        agent_traits_prompt = self.get_agent_traits_prompt()
-
-        options = ', '.join(['buy', 'sell', 'abstain'])
-        prompt = self.dao.get_prompt_by_name('A_Decide')
-        prompt = prompt.format(product_name=product_name, opinion=opinion, options=options)
-        logging.info(f'Prompt: {prompt}')
-
-        entire_prompt = f'{agent_traits_prompt}\n{prompt}'
-
-        message = [{"role": "user", "content": entire_prompt}]
-        
-        response = self.function_call(message, functions=self.get_buy_sell_functions())
-        logging.info(response)
-
-        function_name = response.name
-        function_args = json.loads(response.arguments)
-
-        eval(f'self.{function_name}(**function_args)')
-
 
     def reflect(self):
         pass
