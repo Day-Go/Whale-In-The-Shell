@@ -50,6 +50,14 @@ class DataAccessObject:
         
         return response.data[0]
 
+    def get_asset_by_name(self, currency_name: str) -> str:
+        response = self.sb_client.table('asset') \
+                                 .select('*') \
+                                 .eq('name', currency_name) \
+                                 .execute()
+        
+        return response.data[0]
+
     def get_org_type_by_id(self, id: int) -> str:
         response = self.sb_client.table('organisation_types') \
                                  .select('name') \

@@ -79,7 +79,5 @@ class LLM:
         )
 
         function_call = completion.choices[0].message.function_call
-        if function_call == None:
-            return "FunctionCall(arguments='{'reason':'I got distracted.'}', name='abstain')"
 
         return function_call

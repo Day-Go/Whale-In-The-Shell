@@ -70,10 +70,37 @@ class Agent(LLM):
     def buy(self, asset: str, allocation: float, reason: str):
         logging.info(f'Buying {allocation}% of {asset}...')
         logging.info(f'Reason: {reason}')
+        buy_amount = self.wallet['USD'] * (allocation / 100)
+        self.wallet['USD'] -= buy_amount
+
+        asset = self.dao.get_asset_by_name(asset)
+        asset['market_cap'] += buy_amount
+        if asset in self.wallet:
+            self.wallet[asset] += buy_amount * asset['price']
+        else:
+            self.wallet[asset] = buy_amount * asset['price']
+
+        self.dao.update('agents', self.id, balance=self.wallet['USD'])
+        self.dao.update('asset', asset['id'], market_cap=asset['market_cap'])
 
     def sell(self, asset: str, allocation: float, reason: str):
         logging.info(f'Selling {allocation}% of {asset}...')
         logging.info(f'Reason: {reason}')
+        if self.wallet[asset] < allocation:
+            logging.info(f'Insufficient {asset} to sell.')
+            return
+        
+        sell_amount = self.wallet[asset] * (allocation / 100)
+        self.wallet[asset] -= sell_amount
+        self.wallet['USD'] += sell_amount * asset['price']
+
+        self.dao.update('agents', self.id, balance=self.wallet['USD'])
+
+        asset = self.dao.get_asset_by_name(asset)
+        asset['market_cap'] -= sell_amount
+
+        self.dao.update('asset', asset['id'], market_cap=asset['market_cap'])
+
 
     def abstain(self, reason: str):
         logging.info(f'Abstaining... {reason}')
@@ -91,7 +118,7 @@ class Agent(LLM):
                             "description": "the asset to buy, e.g. BTC, ETH, etc.",
                         },
                         "allocation": {
-                            "type": "string",
+                            "type": "integer",
                             "description": "The percentage of your wallet to allocate to the asset",
                         },
                         "reason": {
@@ -127,7 +154,7 @@ class Agent(LLM):
                             "description": "the asset to sell, e.g. BTC, ETH, etc.",
                         },
                         "allocation": {
-                            "type": "string",
+                            "type": "integer",
                             "description": "The percentage of your asset holdings to sell",
                         },
                         "reason": {
@@ -154,7 +181,7 @@ class Agent(LLM):
         logging.info(f'Agent {self.id} running...')
         while True:
             sleep_duration = self.get_sleep_duration()
-            await asyncio.sleep(sleep_duration)
+            await asyncio.sleep(1)
             event = self.dao.get_random_event()
             await self.update(event)
 
@@ -225,6 +252,10 @@ class Agent(LLM):
             functions=self.get_buy_sell_functions()
         )
         logging.info(response)
+
+        if response == None:
+            logging.info('No response from agent.')
+            return
 
         function_name = response.name
         function_args = json.loads(response.arguments)
