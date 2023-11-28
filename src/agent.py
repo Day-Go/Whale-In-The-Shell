@@ -142,11 +142,27 @@ class Agent(LLM):
 
         return functions
 
+    def get_sleep_duration(self):
+        attentiveness = random.randint(1, 10)
+        min_delay = attentiveness * 2
+        max_delay = attentiveness * 5
+        sleep_duration = random.randint(min_delay, max_delay)
+
+        return sleep_duration
+
+    async def run(self):
+        logging.info(f'Agent {self.id} running...')
+        while True:
+            sleep_duration = self.get_sleep_duration()
+            await asyncio.sleep(sleep_duration)
+            event = self.dao.get_random_event()
+            await self.update(event)
+
     async def update(self, event):
         print(f'Agent {self.id} Updating...\n\n')
         # Decide whether to observe the event
         # For now use a simple probability
-        if random.random() < 0.95:
+        if random.random() < 1:
             await self.observe(event['id'])
 
     async def observe(self, event_id: int):

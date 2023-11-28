@@ -100,6 +100,14 @@ class DataAccessObject:
 
         return response.data[0]
     
+    def get_random_event(self):
+        response = self.sb_client.table('events')\
+            .select('id, event_details')\
+            .execute()
+
+        random_event = random.choice(response.data) if response.data else None
+        return random_event
+
     def get_random_recent_event(self, time_delta_hours: int):
         now = datetime.now()
         one_hour_ago = now - timedelta(hours=time_delta_hours)

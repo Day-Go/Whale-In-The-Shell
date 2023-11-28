@@ -38,11 +38,17 @@ gpt_client = OpenAI(api_key=api_key)
 async_gpt_client = AsyncOpenAI(api_key=api_key)
 observer_manager = ObserverManager()
 
-def load_agents():
-    agent_ids = [120, 105, 151]
+def load_agents() -> list:
+    # agent_ids = [120, 105, 151]
+    agent_ids = [105]
 
+    agents = []
     for agent_id in agent_ids:
-        Agent(agent_id, gpt_client, async_gpt_client, dao, observer_manager)
+        agents.append(
+            Agent(agent_id, gpt_client, async_gpt_client, dao, observer_manager)
+        )
+
+    return agents
 
 async def game_loop():
     while True:
@@ -63,8 +69,10 @@ if __name__ == '__main__':
     og = OrgGenerator(gpt_client, async_gpt_client, dao)
     gm = GameMaster(gpt_client, async_gpt_client, dao, og, ag, observer_manager)
 
-    load_agents()
-    asyncio.run(game_loop())
+    agents = load_agents()
+    for agent in agents:
+        asyncio.run(agent.run())
+    # asyncio.run(game_loop())
 
 
 

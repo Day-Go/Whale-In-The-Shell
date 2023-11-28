@@ -61,7 +61,7 @@ class GameMaster(LLM):
     async def timestep(self) -> None:
         event_type = self.get_event_type()
         event = self.generate_event(event_type)
-        await self.observer_manager.notify(event)
+        # await self.observer_manager.notify(event)
         self.step_count += 1
 
     def generate_event(self, event_type: Event) -> str:

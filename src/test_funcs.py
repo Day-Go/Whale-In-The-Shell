@@ -1,4 +1,6 @@
 import os
+import ast
+import numpy as np
 from supabase import create_client, Client
 from openai import OpenAI
 
