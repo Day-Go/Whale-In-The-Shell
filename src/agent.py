@@ -75,7 +75,7 @@ class Agent(LLM):
 
         asset = self.dao.get_asset_by_name(asset)
         asset['market_cap'] += buy_amount
-        if asset in self.wallet:
+        if asset in self.wallet.keys():
             self.wallet[asset] += buy_amount * asset['price']
         else:
             self.wallet[asset] = buy_amount * asset['price']
@@ -100,7 +100,6 @@ class Agent(LLM):
         asset['market_cap'] -= sell_amount
 
         self.dao.update('asset', asset['id'], market_cap=asset['market_cap'])
-
 
     def abstain(self, reason: str):
         logging.info(f'Abstaining... {reason}')
@@ -261,7 +260,6 @@ class Agent(LLM):
         function_args = json.loads(response.arguments)
 
         eval(f'self.{function_name}(**function_args)')
-
 
     def update_goal(self, opinion: str):
         prompt = self.dao.get_prompt_by_name('A_UpdateGoal')

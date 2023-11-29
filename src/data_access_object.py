@@ -51,7 +51,7 @@ class DataAccessObject:
         return response.data[0]
 
     def get_asset_by_name(self, currency_name: str) -> str:
-        response = self.sb_client.table('asset') \
+        response = self.sb_client.table('assets') \
                                  .select('*') \
                                  .eq('name', currency_name) \
                                  .execute()

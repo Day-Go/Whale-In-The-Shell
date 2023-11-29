@@ -8,8 +8,6 @@ from models.enums import Event, SENTIMENT
 from generators import OrgGenerator, AgentGenerator
 from observer import ObserverManager
 
-logging.basicConfig(level=logging.INFO)
-
 ANNOUNCEMENT_PROBABILITY_START = 100
 ANNOUNCEMENT_PROBABILITY_END = 5
 MAX_STEP_COUNT = 1000
@@ -86,7 +84,7 @@ class GameMaster(LLM):
             org_type=new_org['type'], 
             org_name=new_org['name']
         )
-        logging.info(f"Created new product with id {new_product['id']}")
+        logging.info(f"Created new product with id {new_product['id']}\n")
 
         message = self.build_announcement_message(new_org, new_product)
 
@@ -196,7 +194,7 @@ class GameMaster(LLM):
             product: dict) -> str:
         event = self.chat(message, temp=1.25, max_tokens=80)
         event_embedding = self.generate_embedding(event)
-        logging.info(f"Generated announcement: {event}")
+        logging.info(f"Generated announcement: {event}\n")
 
         event_row = self.dao.insert(
             'events',

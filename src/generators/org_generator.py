@@ -61,7 +61,7 @@ class OrgGenerator(LLM, EntityGenerator):
         logging.info(f"Prompt: {prompt}")
 
         org_attribute = self.chat(message, 1.25, 80)
-        logging.info(f"Generated attribute: {org_attribute}")
+        logging.info(f"Generated attribute: {org_attribute}\n")
 
         if not org_attribute:
             raise ValueError(f"Failed to generate organisation attribute with prompt: {prompt}")
@@ -105,7 +105,7 @@ class OrgGenerator(LLM, EntityGenerator):
         logging.info(f"Prompt: {prompt}")
 
         product_name = self.chat(message, 1.25, 80)
-        logging.info(f"Generated product name: {product_name}")
+        logging.info(f"Generated product name: {product_name}\n")
 
         if not product_name:
             raise ValueError(f"Failed to generate product name with prompt: {prompt}")
