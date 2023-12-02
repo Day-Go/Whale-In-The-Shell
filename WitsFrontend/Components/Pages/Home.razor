@@ -8,11 +8,20 @@
 
 Welcome to your new app.
 
+<p>Current prompt: @prompt</p>
+
 @code {
     private ISupabaseClient<User, Session, RealtimeSocket, RealtimeChannel, Bucket, FileObject> _supabaseClient;
+
+    private string prompt;
 
     protected override async Task OnInitializedAsync()
     {
         _supabaseClient = await SupabaseService.GetClientAsync();
+
+        // Get data from the prompts table
+        var response = await _supabaseClient.From<Prompt>().Get();
+        var prompts = response.Models.FirstOrDefault();
+        prompt = prompts.Content;
     }
 }
