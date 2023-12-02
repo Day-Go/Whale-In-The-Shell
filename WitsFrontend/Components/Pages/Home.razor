@@ -1,6 +1,6 @@
 ﻿@page "/"
 
-@inject SupabaseService SupabaseService
+@inject SupabaseService supabaseService
 
 <PageTitle>Home</PageTitle>
 
@@ -10,6 +10,8 @@ Welcome to your new app.
 
 <p>Current prompt: @prompt</p>
 
+<Post/>
+
 @code {
     private ISupabaseClient<User, Session, RealtimeSocket, RealtimeChannel, Bucket, FileObject> _supabaseClient;
 
@@ -17,11 +19,11 @@ Welcome to your new app.
 
     protected override async Task OnInitializedAsync()
     {
-        _supabaseClient = await SupabaseService.GetClientAsync();
+        _supabaseClient = await supabaseService.GetClientAsync();
 
         // Get data from the prompts table
-        var response = await _supabaseClient.From<Prompt>().Get();
+        var response = await _supabaseClient.From<Agent>().Get();
         var prompts = response.Models.FirstOrDefault();
-        prompt = prompts.Content;
+        prompt = prompts.Biography;
     }
 }

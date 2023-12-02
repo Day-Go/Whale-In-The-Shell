@@ -1,0 +1,24 @@
+﻿@inject SupabaseService supabaseService
+
+<RadzenCard>
+    <div class="post-card">
+        @if (agent != null)
+        {
+            <div class="post-handle">
+                @agent.Handle
+            </div>
+            <div class="post-content">
+                @agent.Biography
+            </div>
+            <div class="post-actions">
+                <RadzenButton Icon="favorite" />
+                <RadzenButton Icon="comment" />
+                <RadzenButton Icon="share" />
+            </div>
+        }
+        else
+        {
+            <div>No agent data available.</div>
+        }
+    </div>
+</RadzenCard>
