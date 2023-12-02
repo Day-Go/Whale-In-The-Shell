@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Radzen.Blazor" Version="4.22.1" />
+    <PackageReference Include="supabase-csharp" Version="0.13.7" />
   </ItemGroup>
 
 </Project>
