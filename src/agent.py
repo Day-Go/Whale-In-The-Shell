@@ -73,12 +73,15 @@ class Agent(LLM):
         buy_amount = self.wallet['USD'] * (allocation / 100)
         self.wallet['USD'] -= buy_amount
 
+        print(self.wallet)
+        logging.info(self.wallet)
         asset = self.dao.get_asset_by_name(asset)
         asset['market_cap'] += buy_amount
-        if asset in self.wallet.keys():
-            self.wallet[asset] += buy_amount * asset['price']
+        ticker = asset['ticker']
+        if ticker in self.wallet:
+            self.wallet[ticker] += buy_amount * asset['price']
         else:
-            self.wallet[asset] = buy_amount * asset['price']
+            self.wallet[ticker] = buy_amount * asset['price']
 
         self.dao.update('agents', self.id, balance=self.wallet['USD'])
         self.dao.update('asset', asset['id'], market_cap=asset['market_cap'])

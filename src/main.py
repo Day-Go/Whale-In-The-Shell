@@ -54,10 +54,11 @@ if __name__ == '__main__':
     og = OrgGenerator(gpt_client, async_gpt_client, dao)
     gm = GameMaster(gpt_client, async_gpt_client, dao, og, ag, observer_manager)
 
-    # agents = load_agents()
-    # for agent in agents:
-    #     asyncio.run(agent.run())
-    asyncio.run(game_loop())
+    agents = load_agents()
+    for agent in agents:
+        asyncio.run(agent.run())
+        
+    # asyncio.run(game_loop())
 
 
 
