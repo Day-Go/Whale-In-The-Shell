@@ -1,17 +1,25 @@
-﻿using Supabase.Gotrue;
+﻿using Supabase;
+using Supabase.Gotrue;
+using Supabase.Interfaces;
+using Supabase.Realtime;
+using Supabase.Storage;
 
 public class SupabaseService
 {
-    private readonly Client _supabaseClient;
+    private readonly Supabase.Client _supabaseClient;
 
-    public SupabaseService(string url, string apiKey)
+    public SupabaseService(string url, string key)
     {
-        _supabaseClient = new Client(new ClientOptions
+        var options = new SupabaseOptions
         {
-            Url = url,
-            Headers = new Dictionary<string, string>{
-                {"api_key", apiKey} 
-            }
-        });
+            AutoConnectRealtime = true
+        };
+
+        _supabaseClient = new Supabase.Client(url, key, options);
+    }
+
+    public async Task<ISupabaseClient<User, Session, RealtimeSocket, RealtimeChannel, Bucket, FileObject>> GetClientAsync()
+    {
+        return await _supabaseClient.InitializeAsync();
     }
 }
