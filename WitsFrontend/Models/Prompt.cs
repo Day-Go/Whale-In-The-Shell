@@ -11,9 +11,10 @@ public class Prompt : BaseModel
     public int Id { get; set; }
 
     [Column("name")]
-    public string? Name { get; set; }
+    [Required]
+    public string Name { get; set; }
 
     [Column("content")]
-    public string? Content { get; set; }
-
+    [Required]
+    public string Content { get; set; }
 }
