@@ -39,7 +39,7 @@ class AgentGenerator(LLM, EntityGenerator):
                 traits=traits, communication_style=communication_style
             )
             agent_bio = self.generate_agent_attribute(
-                'AG_GenAgentBio', tok_limit=150, temp=1.25 ,
+                'AG_GenAgentBio', tok_limit=150, temp=1.25,
                 nationality=nationality, occupation=occupation, 
                 agent_name=agent_name, traits=traits
             )
@@ -53,9 +53,21 @@ class AgentGenerator(LLM, EntityGenerator):
             agent = self.dao.insert(
                 'agents',
                 name=agent_name, handle=agent_handle, occupation=occupation,
-                nationality=nationality, biography=agent_bio, 
+                nationality=nationality, biography=agent_bio,
                 investment_style=investment_style, risk_tolerance=risk_tolerance,
                 communication_style=communication_style, balance=agent_balance
+            )
+            logging.info(f'Created new agent: {agent}')
+
+            agent_goal = self.generate_agent_attribute(
+                'AG_GenAgentGoal', tok_limit=150, temp=1.3,
+                agent_name=agent_name, agent_bio=agent_bio
+            )
+            goal_embedding = self.generate_embedding(agent_goal)
+
+            self.dao.insert(
+                'memories', agent_id=agent.data[0]['id'],
+                memory_details=agent_goal, embedding=goal_embedding
             )
 
             for trait in traits:
@@ -71,8 +83,7 @@ class AgentGenerator(LLM, EntityGenerator):
             logging.error(f'Failed to create new agent: {e}')
             raise
 
-    def update(self, agent):
-        # Logic to update an agent
+    def update(self, entity):
         pass
 
     def deactivate(self, agent):

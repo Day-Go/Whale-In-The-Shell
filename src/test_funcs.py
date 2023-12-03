@@ -2,7 +2,7 @@ import os
 import ast
 import numpy as np
 from supabase import create_client, Client
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 
 from agent import Agent
 from game_master import GameMaster
@@ -18,7 +18,7 @@ dao = DataAccessObject(supabase)
 api_key = os.getenv('OPENAI_API')
 
 gpt_client = OpenAI(api_key=api_key)
-
+async_gpt_client = AsyncOpenAI(api_key=api_key)
 
 def org_generator_test():
     org_generator = OrgGenerator(gpt_client, dao)
@@ -27,7 +27,7 @@ def org_generator_test():
     gm.timestep()
 
 def agent_generator_test():
-    agent_generator = AgentGenerator(gpt_client, dao)
+    agent_generator = AgentGenerator(gpt_client, async_gpt_client, dao)
     agent = agent_generator.create()
     return agent
 

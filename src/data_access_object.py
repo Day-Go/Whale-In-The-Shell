@@ -42,6 +42,15 @@ class DataAccessObject:
         
         return response.data
 
+    def get_wallet_row_by_agentasset_id(self, agent_id: int, asset_id: int) -> int:
+        response = self.sb_client.table('wallet') \
+                                 .select('id') \
+                                 .eq('agent_id', agent_id) \
+                                 .eq('asset_id', asset_id) \
+                                 .execute()
+        
+        return response.data[0]['id']
+
     def get_asset_by_id(self, currency_id: int) -> str:
         response = self.sb_client.table('asset') \
                                  .select('name, ticker') \
