@@ -42,6 +42,16 @@ class DataAccessObject:
         
         return response.data
 
+    def get_n_most_recent_memories(self, agent_id: int, n: int) -> list:
+        response = self.sb_client.table('memories') \
+                                 .select('id, memory_details, embedding') \
+                                 .eq('agent_id', agent_id) \
+                                 .order('created_at', ascending=False) \
+                                 .limit(n) \
+                                 .execute()
+        
+        return response.data
+
     def get_wallet_row_by_agentasset_id(self, agent_id: int, asset_id: int) -> int:
         response = self.sb_client.table('wallet') \
                                  .select('id') \

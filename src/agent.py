@@ -1,7 +1,10 @@
+
+import math
 import json
 import random
 import logging
 import asyncio
+from datetime import datetime
 from openai import OpenAI, AsyncOpenAI
 
 from llm import LLM
@@ -389,4 +392,23 @@ class Agent(LLM):
         sleep_duration = self.get_sleep_duration()
         await asyncio.sleep(1)
 
-    
+    async def retreive_memory(self, ):
+        '''
+        Retreive a memory from the database. Use the metrics outline in the
+        generative agents papger to select a memory.
+        weight = recency + relevance + importance
+        '''
+        memories = self.dao.get_n_most_recent_memories(self.id, 10)
+        
+        weight = 0
+        for memory in memories:
+            weight += self.exponential_decay(memory['created_at'], 0.02)
+
+
+    def exponential_decay(memory_date: datetime, lambda_: float) -> float:
+        current_date = datetime.now()
+
+        delta = current_date - memory_date
+        days = delta.days + delta.seconds / 86400 
+
+        return math.exp(-lambda_ * days)
