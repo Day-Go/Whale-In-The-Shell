@@ -22,6 +22,14 @@ class Agent(LLM):
         self.id = agent_id
         self.dao = dao
         self.wallet = {}
+        
+        
+        # Use list as a way to skew action probability
+        # To start off the agent can only react since it will have
+        # few memories and opinions.
+        self.actions = [self.react] #  self.reflect, self.plan
+        # We will add the other actions to the list as the run_counter increases
+        self.run_counter = 0
 
         self.load_agent_parameters()
         self.load_agent_wallet()
@@ -233,12 +241,18 @@ class Agent(LLM):
         logging.info(f'Agent {self.id} running...')
         while True:
             await self.sleep()
+            # At each time step the agent can either
+            # 1) React
+            # 2) Reflect
+            # 3) Plan
+            # TODO: Come up with a way to decide (For now it will be random)  
+            action = random.choice(self.actions)
+            action()
 
-            # Focus on the observation
-            # 1. How do we select an event? 
-            # Timestamp and embedding. 
             event = self.dao.get_random_event()
             await self.update(event)
+
+            self.run_counter += 1
 
     async def update(self, event):
         print(f'Agent {self.id} Updating...\n\n')
@@ -250,6 +264,15 @@ class Agent(LLM):
     '''
     Cognitive functions
     '''
+    async def react(self):
+        pass
+
+    async def reflect(self):
+        pass
+
+    async def plan(self):
+        pass
+
     async def form_opinion(self, subject: str):
         prompt = self.dao.get_prompt_by_name('A_SubjectOpinion')
         prompt = prompt.format(subject=subject)
@@ -303,12 +326,6 @@ class Agent(LLM):
         logging.info(f'Goal: {goal}')
 
         self.dao.update('agents', self.id, goals=goal)
-
-    def reflect(self):
-        pass
-
-    def plan(self):
-        pass
 
     def insert_memory(self, response: str, event_id: int):
         pass
@@ -392,7 +409,7 @@ class Agent(LLM):
         sleep_duration = self.get_sleep_duration()
         await asyncio.sleep(1)
 
-    async def retreive_memory(self, ):
+    async def retreive_memory(self):
         '''
         Retreive a memory from the database. Use the metrics outline in the
         generative agents papger to select a memory.
@@ -402,8 +419,7 @@ class Agent(LLM):
         
         weight = 0
         for memory in memories:
-            weight += self.exponential_decay(memory['created_at'], 0.02)
-
+            weight += self.exponential_decay(memory['created_at'], 0.0002) # 0.02
 
     def exponential_decay(memory_date: datetime, lambda_: float) -> float:
         current_date = datetime.now()
@@ -412,3 +428,12 @@ class Agent(LLM):
         days = delta.days + delta.seconds / 86400 
 
         return math.exp(-lambda_ * days)
+
+    def update_actions(self, run_counter: int) -> None:
+        if run_counter == 5:
+            self.actions.extend([self.react, self.reflect])
+        elif run_counter == 10:
+            self.actions.extend(
+                [self.react, self.reflect, self.plan]
+            )
+            
